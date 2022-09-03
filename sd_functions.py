@@ -16,6 +16,7 @@ from contextlib import contextmanager, nullcontext
 from ldm.util import instantiate_from_config
 from stable_diffusion.optimizedSD.optimUtils import split_weighted_subprompts, logger
 from transformers import logging
+import io
 
 logging.set_verbosity_error()
 
@@ -142,7 +143,8 @@ def make_txt2img(prompt: str):
     else:
         precision_scope = nullcontext
 
-    seeds = ""
+    seeds = []
+    results = []
     with torch.no_grad():
 
         all_samples = list()
@@ -204,10 +206,12 @@ def make_txt2img(prompt: str):
                         x_samples_ddim = modelFS.decode_first_stage(samples_ddim[i].unsqueeze(0))
                         x_sample = torch.clamp((x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
                         x_sample = 255.0 * rearrange(x_sample[0].cpu().numpy(), "c h w -> h w c")
-                        Image.fromarray(x_sample.astype(np.uint8)).save(
-                            os.path.join(sample_path, "seed_" + str(opt.seed) + "_" + f"{base_count:05}.{opt.format}")
-                        )
-                        seeds += str(opt.seed) + ","
+
+                        results.append(Image.fromarray(x_sample.astype(np.uint8)))
+                        # Image.fromarray(x_sample.astype(np.uint8)).save(
+                        #     os.path.join(sample_path, "seed_" + str(opt.seed) + "_" + f"{base_count:05}.{opt.format}")
+                        # )
+                        seeds.append(str(opt.seed))
                         opt.seed += 1
                         base_count += 1
 
@@ -221,22 +225,12 @@ def make_txt2img(prompt: str):
 
     toc = time.time()
 
-    time_taken = (toc - tic) / 60.0
+    time_taken = (toc - tic)
 
-    print(
-        (
-            "Samples finished in {0:.2f} minutes and exported to "
-            + sample_path
-            + "\n Seeds used = "
-            + seeds[:-1]
-        ).format(time_taken)
-    )
+    return results, time_taken, seeds
 
 
 
 if __name__ == "__main__":
-    make_txt2img("photo of a miniature bear eating a watermelon, macro lens, high definition")
-
-
-
-pass
+    results, time_taken, seeds = make_txt2img("photo of a miniature bear eating a watermelon, macro lens, high definition")
+    pass
