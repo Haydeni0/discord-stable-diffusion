@@ -2,10 +2,11 @@
 
 
 ## To-do
-- Try out image receive and send in discord
-  - Receive an image and save it locally
-  - Flip upside down and return
 - Add error handling to the commands
+- Capture the console output so that the loading bar can be shown in discord
+- Add capability to change options
+- Add img2img
+- Add !help command
 
 
 

@@ -12,6 +12,7 @@ import requests
 import re
 import discord
 import time
+from sd_functions import make_txt2img
 
 # load ini
 config = ConfigParser()
@@ -34,9 +35,26 @@ bot = commands.Bot(
 )
 
 
-@bot.command(name="msg")
-async def returnMessage(ctx, *, msg="<blank>"):
-    await ctx.send(f"Received: {msg}")
+@bot.command(name="txt2img")
+async def txt2img(ctx, *, prompt):
+    msg = await ctx.send(f"“{prompt}”\n> Generating...")
+    results, time_taken, seeds = make_txt2img(prompt)
+    await msg.edit(content=f"“{prompt}”\n> Done in {time_taken} seconds")
+    for img, seed in zip(results, seeds):
+        # Save the image in bytes format again
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format="PNG")
+        # Reset stream position to the start (so it can be read by discord.File)
+        img_bytes.seek(0)
+
+        # Convert to a discord file object that can be sent to the guild
+        discord_img = discord.File(img_bytes, filename=f"{seed}_{prompt}.png")
+        await ctx.send(file=discord_img)
+
+
+@bot.command(name="echo")
+async def echoMessage(ctx, *, msg="<blank>"):
+    await ctx.send(f"ECHO: {msg}")
 
 
 # Take an image attachments as input and send it back
@@ -47,7 +65,6 @@ async def img(ctx):
 
     attachment = ctx.message.attachments[0]
     filename = discordFilename(attachment)
-    
 
     # save_path = saveImageFromUrl(attachment.url, filename)
     await msg.edit(content=f"> Processing...")
@@ -61,12 +78,12 @@ async def img(ctx):
     img.save(img_bytes, format="PNG")
     # Reset stream position to the start (so it can be read by discord.File)
     img_bytes.seek(0)
-    
+
     await msg.edit(content=f"> Done...")
     # Convert to a discord file object that can be sent to the guild
     discord_img = discord.File(img_bytes, filename=filename)
 
-    await ctx.send(file = discord_img)
+    await ctx.send(file=discord_img)
 
 
 def getImageFromUrl(url: str):
