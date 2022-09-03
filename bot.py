@@ -18,19 +18,15 @@ from sd_functions import make_txt2img
 config = ConfigParser()
 config.read("config.ini")
 DISCORD_TOKEN = config.get("auth", "DISCORD_TOKEN")
-DISCORD_GUILD = config.get("auth", "DISCORD_GUILD")
-download_path = config.get("files", "download_path")
 
-if not os.path.exists(download_path):
-    os.makedirs(download_path, exist_ok=True)
 
 # Create intents
 intents = Intents.default()
 intents.message_content = True
 # Create discord bot
 bot = commands.Bot(
-    command_prefix="!",
-    description="Bot hosted on Hayden's PC (and GPU)",
+    command_prefix="/",
+    description="Bot hosted on Hayden's PC (and GPU) \n[https://github.com/Haydeni0/discord-stable-diffusion]",
     intents=intents,
 )
 
@@ -114,7 +110,11 @@ def discordFilename(attachment: discord.message.Attachment):
 def saveImageFromUrl(url: str, filename: str = None) -> str:
     img_data = requests.get(url).content
 
-    save_path = os.path.join(download_path, filename)
+    download_folder = "./downloads"
+    if not os.path.exists(download_folder):
+        os.makedirs(download_folder, exist_ok=True)
+
+    save_path = os.path.join(download_folder, filename)
 
     # Save image (binary)
     with open(save_path, "wb") as input_img:
