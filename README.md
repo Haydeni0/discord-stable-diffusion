@@ -1,4 +1,8 @@
-# Discord bot
+<h1 align="center">Discord Bot - Stable Diffusion</h1>
+
+A discord bot that runs the Stable Diffusion text-to-image model on a local GPU (the computer hosting the discord bot). This uses the [optimised stable diffusion](https://github.com/basujindal/stable-diffusion) repository to do the text to image generation.
+
+---
 
 ## Requirements
 - git
