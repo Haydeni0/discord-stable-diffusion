@@ -43,14 +43,17 @@ A discord bot that runs the Stable Diffusion text-to-image model on a local GPU 
    [auth]
    DISCORD_TOKEN=PASTE_YOUR_TOKEN_HERE
    ```
-6. Run the python script ```bot.py``` using the command
+6. Additionally install the python module for the discord api
+      
+         pip install discord.py
+7. Run the python script ```bot.py``` using the command
 
          python bot.py
    
    or in Windows by using the full path to python, for example:
 
          C:\ProgramData\Anaconda3\envs\ldm\python.exe bot.py
-7. Run the bot on the discord server using "```/```" commands in a discord channel, e.g:
+8. Run the bot on the discord server using "```/```" commands in a discord channel, e.g:
    - ```/help```
    - ```/txt2img <your prompt here>```
 
