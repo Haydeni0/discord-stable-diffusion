@@ -11,6 +11,7 @@ import random
 import requests
 import re
 import discord
+import time
 
 # load ini
 config = ConfigParser()
@@ -20,7 +21,7 @@ DISCORD_GUILD = config.get("auth", "DISCORD_GUILD")
 download_path = config.get("files", "download_path")
 
 if not os.path.exists(download_path):
-    os.makedirs(download_path)
+    os.makedirs(download_path, exist_ok=True)
 
 # Create intents
 intents = Intents.default()
@@ -41,10 +42,16 @@ async def returnMessage(ctx, *, msg="<blank>"):
 # Take an image attachments as input and send it back
 @bot.command(name="img")
 async def img(ctx):
+    msg = await ctx.send(f"> Downloading...")
+    time.sleep(0.5)
+
     attachment = ctx.message.attachments[0]
     filename = discordFilename(attachment)
+    
 
     # save_path = saveImageFromUrl(attachment.url, filename)
+    await msg.edit(content=f"> Processing...")
+    time.sleep(0.5)
 
     img = getImageFromUrl(attachment.url)
     img = img.rotate(180)
@@ -55,6 +62,7 @@ async def img(ctx):
     # Reset stream position to the start (so it can be read by discord.File)
     img_bytes.seek(0)
     
+    await msg.edit(content=f"> Done...")
     # Convert to a discord file object that can be sent to the guild
     discord_img = discord.File(img_bytes, filename=filename)
 
