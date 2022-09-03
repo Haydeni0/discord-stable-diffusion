@@ -30,12 +30,12 @@ intents.message_content = True
 # Create discord bot
 bot = commands.Bot(
     command_prefix="!",
-    description="aughroahoisdoijs",
+    description="Bot hosted on Hayden's PC (and GPU)",
     intents=intents,
 )
 
 
-@bot.command(name="txt2img")
+@bot.command(name="txt2img", help="Generate an image from a prompt (local GPU stable diffusion)")
 async def txt2img(ctx, *, prompt):
     msg = await ctx.send(f"“{prompt}”\n> Generating...")
     results, time_taken, seeds = make_txt2img(prompt)
@@ -52,13 +52,13 @@ async def txt2img(ctx, *, prompt):
         await ctx.send(file=discord_img)
 
 
-@bot.command(name="echo")
+@bot.command(name="echo", help = "[DEBUG]: echo back message")
 async def echoMessage(ctx, *, msg="<blank>"):
     await ctx.send(f"ECHO: {msg}")
 
 
 # Take an image attachments as input and send it back
-@bot.command(name="img")
+@bot.command(name="img", help = "[DEBUG] flips supplied image upside down")
 async def img(ctx):
     msg = await ctx.send(f"> Downloading...")
     time.sleep(0.5)
