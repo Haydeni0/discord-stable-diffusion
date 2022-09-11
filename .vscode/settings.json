@@ -4,6 +4,6 @@
     },
     // "python.defaultInterpreterPath": "C:\\ProgramData\\Anaconda3\\python.exe",
     "code-runner.saveFileBeforeRun": true,
-    "code-runner.runInTerminal": false,
+    "code-runner.runInTerminal": true,
     "output.smartScroll.enabled": false // Make the output autoscrolling stay on
 }

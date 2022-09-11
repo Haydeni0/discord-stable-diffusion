@@ -21,8 +21,15 @@ A discord bot that runs the Stable Diffusion text-to-image model on a local GPU 
 3. Follow the instructions on the [original stable-diffusion repository](https://github.com/CompVis/stable-diffusion) to set it up, summarised here:
    1. Create and activate a latent diffusion conda environment (called ldm)
 
-           conda env create -f .\stable_diffusion\environment.yaml
+      - If the environment ```ldm``` **doesn't** exist
+
+           conda env create --file ./stable_diffusion/environment.yaml
            conda activate ldm
+      
+      - If the environment ```ldm``` **does** exist
+
+            conda activate ldm
+            conda env update --file ./stable_diffusion/environment.yaml --prune
 
    2. Download the weights for the model ([check the latest here](https://huggingface.co/CompVis/stable-diffusion))
       - At the time of writing, the latest one is checkpoint version 1.4 and can be downloaded under "Files and versions" from the Hugging Face page for [stable-diffusion-v-1-4-original](https://huggingface.co/CompVis/stable-diffusion-v-1-4-original) (note that this requires a signup to the website).
@@ -66,12 +73,12 @@ A discord bot that runs the Stable Diffusion text-to-image model on a local GPU 
 - Add capability to change options
 - Add img2img
 - Add !help command
+- Make discord bot quality of life improvements, maybe based on [this bot by harubaru](https://github.com/harubaru/discord-stable-diffusion)
 
 
 
 ## Problems
-- Stable diffusion won't work in WSL2 on my PC
-  - Maybe because of my windows version not allowing Nvidia CUDA drivers on WSL2(see [stackoverflow](https://stackoverflow.com/questions/64256241/found-no-nvidia-driver-on-your-system-error-on-wsl2-conda-environment-with-pytho))
+- 
 
 
 
