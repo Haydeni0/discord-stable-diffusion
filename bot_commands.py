@@ -1,9 +1,10 @@
 from discord.ext import commands
-from utils import getImageFromUrl, discordFilename
+from utils import getImageFromUrl, discordFilename, run_in_executor
 import discord
 import time
 from sd_functions import make_txt2img
 import io
+import asyncio
 
 def makeBotCommands(bot:commands.bot):
 
@@ -56,3 +57,25 @@ def makeBotCommands(bot:commands.bot):
         discord_img = discord.File(img_bytes, filename=filename)
 
         await ctx.send(file=discord_img)
+    
+
+    @bot.command(name="wait", help = "[DEBUG] Wait for a time period")
+    async def wait(ctx, t):
+        # Proof of concept for running a blocking function asynchronously
+        @run_in_executor
+        def blocking(t = 1):
+            time.sleep(t)
+            return
+
+        async def waitblock(t):
+            return await blocking(t)
+
+        t = float(t)
+        task = [asyncio.create_task(waitblock(t))]
+        [await t for t in asyncio.as_completed(task)]
+        await ctx.send(f"Waited {t} seconds")
+
+
+
+
+
