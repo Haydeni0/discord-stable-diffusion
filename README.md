@@ -34,7 +34,8 @@ A discord bot that runs the Stable Diffusion text-to-image model on a local GPU 
    2. Download the weights for the model ([check the latest here](https://huggingface.co/CompVis/stable-diffusion))
       - At the time of writing, the latest one is checkpoint version 1.4 and can be downloaded under "Files and versions" from the Hugging Face page for [stable-diffusion-v-1-4-original](https://huggingface.co/CompVis/stable-diffusion-v-1-4-original) (note that this requires a signup to the website).
    3. Move and rename the model checkpoint file to 
-      > ./stable_diffusion/models/ldm/stable-diffusion-v1/model.ckpt
+      > ./model.ckpt
+      
 4. Create a discord application and bot using the first two chapters of [this guide](https://realpython.com/how-to-make-a-discord-bot-python/) (Creating an Application, Creating a Bot)
    1. Make sure to enable all the "Privileged Gateway Intents"
       ![](/readme_media/PrivilegedGatewayIntents.png)
