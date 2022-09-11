@@ -1,5 +1,4 @@
 import argparse, os, re
-from ast import ClassDef
 import torch
 import numpy as np
 from random import randint
@@ -13,13 +12,14 @@ import time
 from pytorch_lightning import seed_everything
 from torch import autocast
 from contextlib import contextmanager, nullcontext
-from ldm.util import instantiate_from_config
+from stable_diffusion.ldm.util import instantiate_from_config
 from stable_diffusion.optimizedSD.optimUtils import split_weighted_subprompts, logger
 from transformers import logging
-import io
 
 logging.set_verbosity_error()
 
+import sys
+sys.path.append("./stable_diffusion/optimizedSD")
 
 def chunk(it, size):
     it = iter(it)
@@ -63,7 +63,7 @@ class SDOptions:
 def make_txt2img(prompt: str):
 
     config = "stable_diffusion/optimizedSD/v1-inference.yaml"
-    ckpt = "stable_diffusion/models/ldm/stable-diffusion-v1/model.ckpt"
+    ckpt = "model.ckpt"
 
     opt = SDOptions()
     opt.prompt = prompt

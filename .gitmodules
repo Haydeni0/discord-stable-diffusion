@@ -1,3 +1,4 @@
 [submodule "stable_diffusion"]
 	path = stable_diffusion
 	url = git@github.com:basujindal/stable-diffusion.git
+	ignore = dirty
