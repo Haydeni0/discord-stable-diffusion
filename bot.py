@@ -1,14 +1,10 @@
-from fileinput import filename
 from discord import Intents
 from discord.ext import commands
-from PIL import Image
-import os
+from utils import getImageFromUrl, discordFilename
+
 import io
 from configparser import ConfigParser
-import warnings
-import random
-import requests
-import re
+
 import discord
 import time
 from sd_functions import make_txt2img
@@ -88,45 +84,7 @@ async def img(ctx):
     await ctx.send(file=discord_img)
 
 
-def getImageFromUrl(url: str):
-    img_bytes = requests.get(url).content
 
-    img = Image.open(io.BytesIO(img_bytes))
-
-    return img
-
-
-def discordFilename(attachment: discord.message.Attachment):
-    # Gets the filename from a discord attachment
-    if (attachment.filename is not None) and (
-        re.fullmatch("unknown\.\w+", attachment.filename) is None
-    ):
-        filename = attachment.filename
-    else:
-        file_ext_match = re.findall("(?<=\.)\w+(?=$)", attachment.filename)
-        if file_ext_match is None:
-            file_ext = ""
-        else:
-            file_ext = file_ext_match[0]
-        filename = f"img_{hash(attachment.url)}.{file_ext}"
-
-    return filename
-
-
-def saveImageFromUrl(url: str, filename: str = None) -> str:
-    img_data = requests.get(url).content
-
-    download_folder = "./downloads"
-    if not os.path.exists(download_folder):
-        os.makedirs(download_folder, exist_ok=True)
-
-    save_path = os.path.join(download_folder, filename)
-
-    # Save image (binary)
-    with open(save_path, "wb") as input_img:
-        input_img.write(img_data)
-
-    return save_path
 
 
 bot.run(DISCORD_TOKEN)
