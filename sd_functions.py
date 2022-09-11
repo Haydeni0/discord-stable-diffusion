@@ -48,7 +48,7 @@ class SDOptions:
     W = 512 # image width, in pixel space
     C = 4 # latent channels
     f = 8 # downsampling factor
-    n_samples = 1 # how many samples to produce for each given prompt. A.k.a. batch size
+    n_samples = 5 # how many samples to produce for each given prompt. A.k.a. batch size
     n_rows = 0 # rows in the grid (default: n_samples)
     scale = 7.5 # unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))
     device = "cuda" # specify GPU (cuda/cuda:0/cuda:1/...)
