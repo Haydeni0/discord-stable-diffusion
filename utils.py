@@ -49,6 +49,7 @@ def saveImageFromUrl(url: str, filename: str = None) -> str:
 
 
 def run_in_executor(f):
+    # a decorator that turns a blocking function into an asynchronous function
     # from https://stackoverflow.com/questions/41063331/how-to-use-asyncio-with-existing-blocking-library
     @functools.wraps(f)
     def inner(*args, **kwargs):
