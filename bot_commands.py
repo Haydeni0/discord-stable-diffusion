@@ -2,7 +2,7 @@ from discord.ext import commands
 from utils import getImageFromUrl, discordFilename, run_in_executor
 import discord
 import time
-from sd_functions import make_txt2img
+from sd_functions import run_txt2img
 import io
 import asyncio
 
@@ -15,14 +15,15 @@ def makeBotCommands(bot:commands.bot):
         # results, time_taken, seeds = make_txt2img(prompt)
 
         # >>> use this block to do the txt2img asynchronously in parallel
+        # Convert the synchronous function into a coroutine
         @run_in_executor
-        def do_processing(prompt):
-            return make_txt2img(prompt)
-        async def do_processing_async(prompt):
-            return await do_processing(prompt)
-        tasks = [asyncio.create_task(do_processing_async(prompt))]
-        task_results = [await t for t in asyncio.as_completed(tasks)]
-        results, time_taken, seeds = task_results[0]
+        def exec_txt2img(prompt):
+            return run_txt2img(prompt)
+        async def async_txt2img(prompt):
+            return await exec_txt2img(prompt)
+        # run the coroutine
+        output = await asyncio.gather(async_txt2img(prompt))
+        results, time_taken, seeds = output[0]
         # <<<
         
         await msg.edit(content=f"“{prompt}”\n> Done in {time_taken} seconds")
