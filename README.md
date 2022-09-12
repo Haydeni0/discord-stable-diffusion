@@ -70,11 +70,14 @@ A discord bot that runs the Stable Diffusion text-to-image model on a local GPU 
 
 ## To-do
 - Add error handling to the commands
-- Capture the console output so that the loading bar can be shown in discord
-- Add capability to change options
+- Capture the console output so that the loading bar can be shown in discord, the lstein fork does this somehow
+- Add capability to change txt2img options from discord
 - Add img2img
-- Add !help command
 - Make discord bot quality of life improvements, maybe based on [this bot by harubaru](https://github.com/harubaru/discord-stable-diffusion)
+- Make sure two parallel txt2img things dont occur, give a warning if a txt2img is called again without finishing the previous one
+  - Or maybe allow it by putting them in a queue (with a max length), and run them serially so the gpu isn't working on 2 at once
+- Preload the model like the lstein fork does?
+  - Or just keep it loaded between queued prompts
 
 
 
