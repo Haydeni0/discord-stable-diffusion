@@ -22,8 +22,8 @@ def makeBotCommands(bot:commands.bot):
         async def async_txt2img(prompt):
             return await exec_txt2img(prompt)
         # run the coroutine
-        fut = asyncio.gather(async_txt2img(prompt))
-        results, time_taken, seeds = (await fut)[0]
+        output = await asyncio.gather(async_txt2img(prompt))
+        results, time_taken, seeds = output[0]
         # <<<
         
         await msg.edit(content=f"“{prompt}”\n> Done in {time_taken} seconds")
