@@ -60,7 +60,7 @@ class SDOptions:
     format = "png" # output image format ["jpg" or "png"]
     sampler = "plms" # sampler ["ddim" or "plms"]
 
-def make_txt2img(prompt: str):
+def run_txt2img(prompt: str):
 
     config = "stable_diffusion/optimizedSD/v1-inference.yaml"
     ckpt = "model.ckpt"
@@ -232,5 +232,5 @@ def make_txt2img(prompt: str):
 
 
 if __name__ == "__main__":
-    results, time_taken, seeds = make_txt2img("photo of a miniature bear eating a watermelon, macro lens, high definition")
+    results, time_taken, seeds = run_txt2img("photo of a miniature bear eating a watermelon, macro lens, high definition")
     pass
