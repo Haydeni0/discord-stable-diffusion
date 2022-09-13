@@ -13,17 +13,37 @@ def run_txt2img(*args, **kwargs):
 async def async_txt2img(*args, **kwargs):
     return await run_txt2img(*args, **kwargs)
 
+
+# Global variables that persist between coroutines
+opt, model, modelCS, modelFS = (None, None, None, None)
+running_SD = False
+
 def makeBotCommands(bot:commands.bot):
 
     @bot.command(name="txt2img", help="Generate an image from a prompt (local GPU stable diffusion)")
     async def bot_txt2img(ctx, *, prompt):
-        msg = await ctx.send(f"“{prompt}”\n> Generating...")
+        msg = await ctx.send(f"“{prompt}”\n> Waiting...")
 
         
-        # results, time_taken, seeds = txt2img(prompt)
-        # run the coroutine
-        opt, model, modelCS, modelFS = initSD(prompt)
+
+        # Run txt2img with the model, if another instance is not running already
+        # Find a better way of doing this with asyncio rather than global variables, maybe with asyncio.queue
+        global running_SD, opt, model, modelCS, modelFS
+        
+        if not running_SD:
+            opt, model, modelCS, modelFS = initSD()
+        while running_SD:
+            await asyncio.sleep(0.1)
+        running_SD = True
+        await msg.edit(content=f"“{prompt}”\n> Generating...")
+        opt.prompt = prompt
         output = await asyncio.gather(async_txt2img(opt, model, modelCS, modelFS))
+        running_SD = False
+
+        await asyncio.sleep(0.2)
+        if not running_SD:
+            opt, model, modelCS, modelFS = (None, None, None, None)
+        
         results, time_taken, seeds = output[0]
         # use an asyncio.queue with a maxsize of 1, where txt2img puts an element in the queue and only gets it back when processing is complete
         # This means that each time txt2img is called, it won't run until the queue is empty, and then there won't be two running at once.

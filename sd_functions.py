@@ -39,7 +39,7 @@ class SDOptions:
     C = 4  # latent channels
     f = 8  # downsampling factor
     n_samples = (
-        5  # how many samples to produce for each given prompt. A.k.a. batch size
+        1  # how many samples to produce for each given prompt. A.k.a. batch size
     )
     scale = 7.5  # unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))
     device = "cuda"  # specify GPU (cuda/cuda:0/cuda:1/...)
@@ -110,12 +110,11 @@ def loadModels(ckpt_filepath: str, opt: SDOptions, config_filepath: str) -> Tupl
     return model, modelCS, modelFS
 
 
-def initSD(prompt):
+def initSD():
     config_filepath = "stable_diffusion/optimizedSD/v1-inference.yaml"
     ckpt_filepath = "model.ckpt"
 
     opt = SDOptions()
-    opt.prompt = prompt
 
     os.makedirs(opt.outdir, exist_ok=True)
 

@@ -70,6 +70,7 @@ A discord bot that runs the Stable Diffusion text-to-image model on a local GPU 
 
 ## To-do
 - Add error handling to the commands
+- Don't let txt2img automatically save the images, put that functionality in a separate routine
 - Capture the console output so that the loading bar can be shown in discord, the lstein fork does this somehow
 - Add capability to change txt2img options from discord
 - Add img2img
