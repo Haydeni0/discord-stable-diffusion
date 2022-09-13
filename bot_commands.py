@@ -39,13 +39,13 @@ def makeBotCommands(bot:commands.bot):
 
 
     @bot.command(name="echo", help = "[DEBUG]: echo back message")
-    async def echoMessage(ctx, *, msg="<blank>"):
+    async def bot_echo(ctx, *, msg="<blank>"):
         await ctx.send(f"ECHO: {msg}")
 
 
     # Take an image attachments as input and send it back
     @bot.command(name="img", help = "[DEBUG] flips supplied image upside down")
-    async def img(ctx):
+    async def bot_img(ctx):
         msg = await ctx.send(f"> Downloading...")
         time.sleep(0.5)
 
@@ -73,7 +73,7 @@ def makeBotCommands(bot:commands.bot):
     
 
     @bot.command(name="wait", help = "[DEBUG] Wait for a time period")
-    async def wait(ctx, t):
+    async def bot_wait(ctx, t):
         # Proof of concept for running a blocking function asynchronously
         @run_in_executor
         def blocking(t = 1):
