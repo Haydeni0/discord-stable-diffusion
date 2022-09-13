@@ -44,7 +44,6 @@ class SDOptions:
     n_rows = 0  # rows in the grid (default: n_samples)
     scale = 7.5  # unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))
     device = "cuda"  # specify GPU (cuda/cuda:0/cuda:1/...)
-    from_file = ""  # if specified, load prompts from this file
     seed = None  # the seed (for reproducible sampling)
     unet_bs = 1  # Slightly reduces inference time at the expense of high VRAM (value > 1 not recommended )
     turbo = True  # Reduces inference time on the expense of 1GB VRAM
@@ -132,6 +131,7 @@ def txt2img(prompt: str):
         opt.seed = randint(0, 1000000)
     seed_everything(opt.seed)
 
+    # Load model onto the GPU
     model, modelCS, modelFS = load(ckpt_filepath, opt, config_filepath)
 
     start_code = None
@@ -142,17 +142,9 @@ def txt2img(prompt: str):
 
     batch_size = opt.n_samples
     n_rows = opt.n_rows if opt.n_rows > 0 else batch_size
-    if not opt.from_file:
-        prompt = opt.prompt
-        assert prompt is not None
-        data = [batch_size * [prompt]]
-
-    else:
-        print(f"reading prompts from {opt.from_file}")
-        with open(opt.from_file, "r") as f:
-            data = f.read().splitlines()
-            data = batch_size * list(data)
-            data = list(chunk(sorted(data), batch_size))
+    prompt = opt.prompt
+    assert prompt is not None
+    data = [batch_size * [prompt]]
 
     if opt.precision == "autocast" and opt.device != "cpu":
         precision_scope = autocast
