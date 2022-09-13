@@ -2,3 +2,7 @@
 	path = stable_diffusion
 	url = git@github.com:basujindal/stable-diffusion.git
 	ignore = dirty
+[submodule "lstein_stable_diffusion"]
+	path = lstein_stable_diffusion
+	url = git@github.com:lstein/stable-diffusion.git
+	ignore = dirty
