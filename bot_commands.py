@@ -2,29 +2,28 @@ from discord.ext import commands
 from utils import getImageFromUrl, discordFilename, run_in_executor
 import discord
 import time
-from sd_functions import run_txt2img
+from sd_functions import txt2img
 import io
 import asyncio
+
+# Convert txt2img into a coroutine called async_txt2img
+@run_in_executor
+def run_txt2img(prompt):
+    return txt2img(prompt)
+async def async_txt2img(prompt):
+    return await run_txt2img(prompt)
 
 def makeBotCommands(bot:commands.bot):
 
     @bot.command(name="txt2img", help="Generate an image from a prompt (local GPU stable diffusion)")
-    async def txt2img(ctx, *, prompt):
+    async def bot_txt2img(ctx, *, prompt):
         msg = await ctx.send(f"“{prompt}”\n> Generating...")
 
         # results, time_taken, seeds = make_txt2img(prompt)
 
-        # >>> use this block to do the txt2img asynchronously in parallel
-        # Convert the synchronous function into a coroutine
-        @run_in_executor
-        def exec_txt2img(prompt):
-            return run_txt2img(prompt)
-        async def async_txt2img(prompt):
-            return await exec_txt2img(prompt)
         # run the coroutine
         output = await asyncio.gather(async_txt2img(prompt))
         results, time_taken, seeds = output[0]
-        # <<<
         
         await msg.edit(content=f"“{prompt}”\n> Done in {time_taken} seconds")
         for img, seed in zip(results, seeds):
