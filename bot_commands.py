@@ -2,29 +2,52 @@ from discord.ext import commands
 from utils import getImageFromUrl, discordFilename, run_in_executor
 import discord
 import time
-from sd_functions import run_txt2img
+from sd_functions import txt2img, initSD
 import io
 import asyncio
+
+# Convert txt2img into a coroutine called async_txt2img
+@run_in_executor
+def run_txt2img(*args, **kwargs):
+    return txt2img(*args, **kwargs)
+async def async_txt2img(*args, **kwargs):
+    return await run_txt2img(*args, **kwargs)
+
+
+# Global variables that persist between coroutines
+opt, model, modelCS, modelFS = (None, None, None, None)
+running_SD = False
 
 def makeBotCommands(bot:commands.bot):
 
     @bot.command(name="txt2img", help="Generate an image from a prompt (local GPU stable diffusion)")
-    async def txt2img(ctx, *, prompt):
-        msg = await ctx.send(f"“{prompt}”\n> Generating...")
+    async def bot_txt2img(ctx, *, prompt):
+        msg = await ctx.send(f"“{prompt}”\n> Waiting...")
 
-        # results, time_taken, seeds = make_txt2img(prompt)
+        
 
-        # >>> use this block to do the txt2img asynchronously in parallel
-        # Convert the synchronous function into a coroutine
-        @run_in_executor
-        def exec_txt2img(prompt):
-            return run_txt2img(prompt)
-        async def async_txt2img(prompt):
-            return await exec_txt2img(prompt)
-        # run the coroutine
-        output = await asyncio.gather(async_txt2img(prompt))
+        # Run txt2img with the model, if another instance is not running already
+        # Find a better way of doing this with asyncio rather than global variables, maybe with asyncio.queue
+        global running_SD, opt, model, modelCS, modelFS
+        
+        if not running_SD:
+            opt, model, modelCS, modelFS = initSD()
+        while running_SD:
+            await asyncio.sleep(0.1)
+        running_SD = True
+        await msg.edit(content=f"“{prompt}”\n> Generating...")
+        opt.prompt = prompt
+        output = await asyncio.gather(async_txt2img(opt, model, modelCS, modelFS))
+        running_SD = False
+
+        await asyncio.sleep(0.2)
+        if not running_SD:
+            opt, model, modelCS, modelFS = (None, None, None, None)
+        
         results, time_taken, seeds = output[0]
-        # <<<
+        # use an asyncio.queue with a maxsize of 1, where txt2img puts an element in the queue and only gets it back when processing is complete
+        # This means that each time txt2img is called, it won't run until the queue is empty, and then there won't be two running at once.
+        # Use await q.join() to unload the ckpt model from memory, so that multiple calls of txt2img don't load the model multiple times
         
         await msg.edit(content=f"“{prompt}”\n> Done in {time_taken} seconds")
         for img, seed in zip(results, seeds):
@@ -40,13 +63,13 @@ def makeBotCommands(bot:commands.bot):
 
 
     @bot.command(name="echo", help = "[DEBUG]: echo back message")
-    async def echoMessage(ctx, *, msg="<blank>"):
+    async def bot_echo(ctx, *, msg="<blank>"):
         await ctx.send(f"ECHO: {msg}")
 
 
     # Take an image attachments as input and send it back
     @bot.command(name="img", help = "[DEBUG] flips supplied image upside down")
-    async def img(ctx):
+    async def bot_img(ctx):
         msg = await ctx.send(f"> Downloading...")
         time.sleep(0.5)
 
@@ -74,7 +97,7 @@ def makeBotCommands(bot:commands.bot):
     
 
     @bot.command(name="wait", help = "[DEBUG] Wait for a time period")
-    async def wait(ctx, t):
+    async def bot_wait(ctx, t):
         # Proof of concept for running a blocking function asynchronously
         @run_in_executor
         def blocking(t = 1):
