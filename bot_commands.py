@@ -19,8 +19,8 @@ def makeBotCommands(bot:commands.bot):
     async def bot_txt2img(ctx, *, prompt):
         msg = await ctx.send(f"“{prompt}”\n> Generating...")
 
-        # results, time_taken, seeds = make_txt2img(prompt)
-
+        
+        # results, time_taken, seeds = txt2img(prompt)
         # run the coroutine
         output = await asyncio.gather(async_txt2img(prompt))
         results, time_taken, seeds = output[0]
