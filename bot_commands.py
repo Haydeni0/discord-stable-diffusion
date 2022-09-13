@@ -2,16 +2,16 @@ from discord.ext import commands
 from utils import getImageFromUrl, discordFilename, run_in_executor
 import discord
 import time
-from sd_functions import txt2img
+from sd_functions import txt2img, initSD
 import io
 import asyncio
 
 # Convert txt2img into a coroutine called async_txt2img
 @run_in_executor
-def run_txt2img(prompt):
-    return txt2img(prompt)
-async def async_txt2img(prompt):
-    return await run_txt2img(prompt)
+def run_txt2img(*args, **kwargs):
+    return txt2img(*args, **kwargs)
+async def async_txt2img(*args, **kwargs):
+    return await run_txt2img(*args, **kwargs)
 
 def makeBotCommands(bot:commands.bot):
 
@@ -22,8 +22,12 @@ def makeBotCommands(bot:commands.bot):
         
         # results, time_taken, seeds = txt2img(prompt)
         # run the coroutine
-        output = await asyncio.gather(async_txt2img(prompt))
+        opt, model, modelCS, modelFS = initSD(prompt)
+        output = await asyncio.gather(async_txt2img(opt, model, modelCS, modelFS))
         results, time_taken, seeds = output[0]
+        # use an asyncio.queue with a maxsize of 1, where txt2img puts an element in the queue and only gets it back when processing is complete
+        # This means that each time txt2img is called, it won't run until the queue is empty, and then there won't be two running at once.
+        # Use await q.join() to unload the ckpt model from memory, so that multiple calls of txt2img don't load the model multiple times
         
         await msg.edit(content=f"“{prompt}”\n> Done in {time_taken} seconds")
         for img, seed in zip(results, seeds):

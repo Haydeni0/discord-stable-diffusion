@@ -65,7 +65,7 @@ def load_model_from_config(ckpt, verbose=False):
     return sd
 
 
-def load(ckpt_filepath:str, opt: SDOptions, config_filepath:str) -> Tuple:
+def loadModels(ckpt_filepath: str, opt: SDOptions, config_filepath: str) -> Tuple:
     sd = load_model_from_config(f"{ckpt_filepath}")
     li, lo = [], []
     for key, value in sd.items():
@@ -106,32 +106,35 @@ def load(ckpt_filepath:str, opt: SDOptions, config_filepath:str) -> Tuple:
     if opt.device != "cpu" and opt.precision == "autocast":
         model.half()
         modelCS.half()
-    
+
     return model, modelCS, modelFS
 
 
-
-def txt2img(prompt: str):
-
+def initSD(prompt):
     config_filepath = "stable_diffusion/optimizedSD/v1-inference.yaml"
     ckpt_filepath = "model.ckpt"
-
-    
 
     opt = SDOptions()
     opt.prompt = prompt
 
-    tic = time.time()
     os.makedirs(opt.outdir, exist_ok=True)
-    outpath = opt.outdir
 
     if opt.seed == None:
         opt.seed = randint(0, 1000000)
     seed_everything(opt.seed)
 
     # Load model onto the GPU
-    model, modelCS, modelFS = load(ckpt_filepath, opt, config_filepath)
+    model, modelCS, modelFS = loadModels(ckpt_filepath, opt, config_filepath)
 
+    return opt, model, modelCS, modelFS
+
+
+def txt2img(opt: SDOptions, model, modelCS, modelFS):
+
+    
+    tic = time.time()
+
+    outpath = opt.outdir
     start_code = None
     if opt.fixed_code:
         start_code = torch.randn(
@@ -225,7 +228,13 @@ def txt2img(prompt: str):
 
                         results.append(Image.fromarray(x_sample.astype(np.uint8)))
                         Image.fromarray(x_sample.astype(np.uint8)).save(
-                            os.path.join(sample_path, "seed_" + str(opt.seed) + "_" + f"{base_count:05}.{opt.format}")
+                            os.path.join(
+                                sample_path,
+                                "seed_"
+                                + str(opt.seed)
+                                + "_"
+                                + f"{base_count:05}.{opt.format}",
+                            )
                         )
                         seeds.append(str(opt.seed))
                         opt.seed += 1
