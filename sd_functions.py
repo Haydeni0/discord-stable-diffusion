@@ -224,9 +224,9 @@ def txt2img(prompt: str):
                         )
 
                         results.append(Image.fromarray(x_sample.astype(np.uint8)))
-                        # Image.fromarray(x_sample.astype(np.uint8)).save(
-                        #     os.path.join(sample_path, "seed_" + str(opt.seed) + "_" + f"{base_count:05}.{opt.format}")
-                        # )
+                        Image.fromarray(x_sample.astype(np.uint8)).save(
+                            os.path.join(sample_path, "seed_" + str(opt.seed) + "_" + f"{base_count:05}.{opt.format}")
+                        )
                         seeds.append(str(opt.seed))
                         opt.seed += 1
                         base_count += 1
