@@ -41,7 +41,6 @@ class SDOptions:
     n_samples = (
         5  # how many samples to produce for each given prompt. A.k.a. batch size
     )
-    n_rows = 0  # rows in the grid (default: n_samples)
     scale = 7.5  # unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))
     device = "cuda"  # specify GPU (cuda/cuda:0/cuda:1/...)
     seed = None  # the seed (for reproducible sampling)
@@ -125,7 +124,6 @@ def txt2img(prompt: str):
     tic = time.time()
     os.makedirs(opt.outdir, exist_ok=True)
     outpath = opt.outdir
-    grid_count = len(os.listdir(outpath)) - 1
 
     if opt.seed == None:
         opt.seed = randint(0, 1000000)
@@ -141,7 +139,6 @@ def txt2img(prompt: str):
         )
 
     batch_size = opt.n_samples
-    n_rows = opt.n_rows if opt.n_rows > 0 else batch_size
     prompt = opt.prompt
     assert prompt is not None
     data = [batch_size * [prompt]]
@@ -155,8 +152,7 @@ def txt2img(prompt: str):
     results = []
     with torch.no_grad():
 
-        all_samples = list()
-        for n in trange(opt.n_iter, desc="Sampling"):
+        for _ in trange(opt.n_iter, desc="Sampling"):
             for prompts in tqdm(data, desc="data"):
 
                 sample_path = os.path.join(
