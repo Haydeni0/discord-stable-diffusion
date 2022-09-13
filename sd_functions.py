@@ -39,7 +39,7 @@ class SDOptions:
     C = 4  # latent channels
     f = 8  # downsampling factor
     n_samples = (
-        1  # how many samples to produce for each given prompt. A.k.a. batch size
+        5  # how many samples to produce for each given prompt. A.k.a. batch size
     )
     scale = 7.5  # unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))
     device = "cuda"  # specify GPU (cuda/cuda:0/cuda:1/...)
