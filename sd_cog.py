@@ -33,11 +33,6 @@ class StableDiffusionCog(commands.Cog):
         self.running_sd = False
         self.t2i = self.init_t2i()
 
-    @commands.slash_command()
-    @option("pongis", str, description="asd", required=True)
-    async def hello(self, ctx, *, txt: str):
-        await ctx.send(f"Hello {txt}")
-
     @commands.slash_command(description="Generate image from text")
     @option("prompt", str, description="A text prompt for the model", required=True)
     @option("n", int, description="Number of images to generate", required=False)
