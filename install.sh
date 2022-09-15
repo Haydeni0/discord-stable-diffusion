@@ -1,21 +1,19 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-repo_root_dir=$(dirname "$0")
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+echo ${SCRIPT_DIR}
 
 if { conda env list | grep 'ldm'; } >/dev/null 2>&1; then
-    conda env update -f ${repo_root_dir}/lstein_stable_diffusion/environment.yaml --prune
+    conda env update -f ${SCRIPT_DIR}/lstein_stable_diffusion/environment.yaml --prune
 else
-    conda env create -f ${repo_root_dir}/lstein_stable_diffusion/environment.yaml
+    conda env create -f ${SCRIPT_DIR}/lstein_stable_diffusion/environment.yaml
 fi
 
-conda init bash
-/bin/bash
+CONDA_BASE=$(conda info --base)
+source ${CONDA_BASE}/etc/profile.d/conda.sh
 conda activate ldm
 
-if {conda list | grep 'discord'; } >/dev/null 2>&1; then
-    python -m pip uninstall py-cord discord.py 
-fi
 python -m pip install py-cord=2.1.3
 
-python ${repo_root_dir}/lstein_stable_diffusion/scripts/preload_models.py
+python ${SCRIPT_DIR}/lstein_stable_diffusion/scripts/preload_models.py
 
