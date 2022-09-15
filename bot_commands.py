@@ -2,9 +2,10 @@ from discord.ext import commands
 from utils import getImageFromUrl, discordFilename, run_in_executor
 import discord
 import time
-from sd_functions import txt2img, initSD
+from sd_functions import txt2img
 import io
 import asyncio
+from discord_bot import StableDiffusionBot
 
 # Convert txt2img into a coroutine called async_txt2img
 @run_in_executor
@@ -14,11 +15,7 @@ async def async_txt2img(*args, **kwargs):
     return await run_txt2img(*args, **kwargs)
 
 
-# Global variables that persist between coroutines
-opt, model, modelCS, modelFS = (None, None, None, None)
-running_SD = False
-
-def makeBotCommands(bot:commands.bot):
+def makeBotCommands(bot:StableDiffusionBot):
 
     @bot.command(name="txt2img", help="Generate an image from a prompt (local GPU stable diffusion)")
     async def bot_txt2img(ctx, *, prompt):
@@ -27,24 +24,11 @@ def makeBotCommands(bot:commands.bot):
         
 
         # Run txt2img with the model, if another instance is not running already
-        # Find a better way of doing this with asyncio rather than global variables, maybe with asyncio.queue
-        global running_SD, opt, model, modelCS, modelFS
+        tic = time.time()
+        output = await asyncio.gather(async_txt2img(prompt))
+        time_taken = tic - time.time()
         
-        if not running_SD:
-            opt, model, modelCS, modelFS = initSD()
-        while running_SD:
-            await asyncio.sleep(0.1)
-        running_SD = True
-        await msg.edit(content=f"“{prompt}”\n> Generating...")
-        opt.prompt = prompt
-        output = await asyncio.gather(async_txt2img(opt, model, modelCS, modelFS))
-        running_SD = False
-
-        await asyncio.sleep(0.2)
-        if not running_SD:
-            opt, model, modelCS, modelFS = (None, None, None, None)
-        
-        results, time_taken, seeds = output[0]
+        results, seeds = tuple(zip(*output[0]))
         # use an asyncio.queue with a maxsize of 1, where txt2img puts an element in the queue and only gets it back when processing is complete
         # This means that each time txt2img is called, it won't run until the queue is empty, and then there won't be two running at once.
         # Use await q.join() to unload the ckpt model from memory, so that multiple calls of txt2img don't load the model multiple times
