@@ -80,7 +80,7 @@ class StableDiffusionCog(commands.Cog):
         embed.color = discord.Colour.fuchsia()
         seeds_str = "|".join([str(_) for _ in seeds])
         s = "" if n == 1 else "s"
-        embed.set_footer(text=f"Prompt({prompt}), seed{s}({seeds_str}), duration({duration}))")
+        embed.set_footer(text=f"\"{prompt}\"\nseed{s}:{seeds_str}, duration({duration:.1g}))")
         await ctx.followup.send(embed=embed, files=discord_images)
 
     @commands.slash_command(description="Generate image from text")
