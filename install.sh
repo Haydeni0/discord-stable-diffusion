@@ -12,7 +12,7 @@ CONDA_BASE=$(conda info --base)
 source ${CONDA_BASE}/etc/profile.d/conda.sh
 conda activate ldm
 
-python -m pip install py-cord=2.1.3
+python -m pip install py-cord==2.1.3
 
 python ${SCRIPT_DIR}/lstein_stable_diffusion/scripts/preload_models.py
 
