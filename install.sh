@@ -24,9 +24,9 @@ python ${SCRIPT_DIR}/lstein_stable_diffusion/scripts/preload_models.py
 if [ -f "${SCRIPT_DIR}/config.ini" ]; then
     echo === config.ini file exists
 else    
-    echo Creating default config.ini
+    echo === Creating default config.ini
     echo \# .ini > config.ini
-    echo [auth] > config.ini
-    echo DISCORD_TOKEN=PASTE_YOUR_TOKEN_HERE > config.ini
+    echo [auth] >> config.ini
+    echo DISCORD_TOKEN=PASTE_YOUR_TOKEN_HERE >> config.ini
 fi
 
