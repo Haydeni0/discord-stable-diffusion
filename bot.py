@@ -8,7 +8,7 @@ from bot_commands import makeBotCommands
 from discord_bot import StableDiffusionBot
 
 logger = logging.getLogger(__name__)
-logging_format = '%(name)s:%(levelname)s %(message)s'
+logging_format = '[%(asctime)s] %(name)s:%(levelname)s %(message)s'
 logging.basicConfig(filename='bot.log', filemode='w',
                     format=logging_format, level=logging.INFO)
 

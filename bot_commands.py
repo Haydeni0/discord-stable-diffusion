@@ -2,7 +2,6 @@ from discord.ext import commands
 from utils import getImageFromUrl, discordFilename, run_in_executor
 import discord
 import time
-from sd_functions import txt2img
 import io
 import asyncio
 from discord_bot import StableDiffusionBot
@@ -10,7 +9,7 @@ from discord_bot import StableDiffusionBot
 # Convert txt2img into a coroutine called async_txt2img
 @run_in_executor
 def run_txt2img(*args, **kwargs):
-    return txt2img(*args, **kwargs)
+    return None#txt2img(*args, **kwargs)
 async def async_txt2img(*args, **kwargs):
     return await run_txt2img(*args, **kwargs)
 
