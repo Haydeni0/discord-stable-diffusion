@@ -48,8 +48,8 @@ def main(prompt = "pogge"):
     prompt_parser = create_cmd_parser()
     opt_prompt = prompt_parser.parse_args([prompt])
 
-    width = 512
-    height = 512
+    default_width = 512
+    default_height = 512
     config = "lstein_stable_diffusion/configs/stable-diffusion/v1-inference.yaml"
     weights = "./model.ckpt"
 
@@ -71,8 +71,8 @@ def main(prompt = "pogge"):
     # additional parameters will be added (or overriden) during
     # the user input loop
     t2i = Generate(
-        width=width,
-        height=height,
+        width=default_width,
+        height=default_height,
         sampler_name=opt.sampler_name,
         weights=weights,
         full_precision=opt.full_precision,
@@ -96,7 +96,7 @@ def main(prompt = "pogge"):
 
 
     results = t2i.prompt2image(image_callback=None, **vars(opt_prompt))
-    
+
     pass
 
     
