@@ -15,29 +15,6 @@ from ldm.dream.server import DreamServer, ThreadingDreamServer
 from ldm.dream.image_util import make_grid
 from omegaconf import OmegaConf
 from lstein_stable_diffusion.scripts.dream import create_argv_parser, create_cmd_parser
-
-
-
-class SDOptions:
-    prompt = "a painting of a virus monster playing guitar"  # the prompt to render
-    full_precision = False # Use memory-intensive full precision math for calculations
-    ddim_steps = 50  # number of ddim sampling steps
-    g = False # Generate a grid instead of individual images
-    sampler_name = "k_lms" # Set the initial sampler 
-    height = 512  # image height, in pixel space
-    width = 512  # image width, in pixel space
-    C = 4  # latent channels
-    f = 8  # downsampling factor
-    n = 1 # Number of samples to generate
-    scale = 7.5  # unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))
-    device = "cuda"  # specify GPU (cuda/cuda:0/cuda:1/...)
-    seed = None  # the seed (for reproducible sampling)
-    unet_bs = 1  # Slightly reduces inference time at the expense of high VRAM (value > 1 not recommended )
-    turbo = True  # Reduces inference time on the expense of 1GB VRAM
-    precision = "autocast"  # evaluate at this precision: choices=["full", "autocast"]
-    format = "png"  # output image format ["jpg" or "png"]
-    sampler = "plms"  # sampler ["ddim" or "plms"]
-    weights_path = "./model.ckpt"
     
 
 def main(prompt = "pogge"):
