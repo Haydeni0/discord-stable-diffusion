@@ -1,7 +1,6 @@
 #!/bin/bash
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-echo ${SCRIPT_DIR}
 
 if { conda env list | grep 'ldm'; } >/dev/null 2>&1; then
     conda env update -f ${SCRIPT_DIR}/lstein_stable_diffusion/environment.yaml --prune
