@@ -1,6 +1,6 @@
 <h1 align="center">Discord Bot - Stable Diffusion</h1>
 
-A discord bot that runs the Stable Diffusion text-to-image model on a local GPU (the computer hosting the discord bot). This uses the [optimised stable diffusion](https://github.com/basujindal/stable-diffusion) repository to do the text to image generation.
+A discord bot that runs the Stable Diffusion text-to-image model on a local GPU (the computer hosting the discord bot). This uses a [fork of stable diffusion](https://github.com/lstein/stable-diffusion) repository to do the text to image generation.
 
 ---
 
@@ -18,18 +18,12 @@ A discord bot that runs the Stable Diffusion text-to-image model on a local GPU 
          git clone --recurse-submodules git@github.com:Haydeni0/discord-stable-diffusion
 
 2. Navigate to the repository in terminal
-3. Follow the instructions on the [original stable-diffusion repository](https://github.com/CompVis/stable-diffusion) to set it up, summarised here:
-   1. Create and activate a latent diffusion conda environment (called ldm)
+3. Follow the instructions [here](https://github.com/lstein/stable-diffusion) to set it up
+   1. Or if using linux, run the command
 
-      - If the environment ```ldm``` **doesn't** exist
+            sh install.sh
 
-           conda env create --file ./stable_diffusion/environment.yaml
-           conda activate ldm
-      
-      - If the environment ```ldm``` **does** exist
-
-            conda activate ldm
-            conda env update --file ./stable_diffusion/environment.yaml --prune
+      to automatically set things up (requires an installation of conda).
 
    2. Download the weights for the model ([check the latest here](https://huggingface.co/CompVis/stable-diffusion))
       - At the time of writing, the latest one is checkpoint version 1.4 and can be downloaded under "Files and versions" from the Hugging Face page for [stable-diffusion-v-1-4-original](https://huggingface.co/CompVis/stable-diffusion-v-1-4-original) (note that this requires a signup to the website).
