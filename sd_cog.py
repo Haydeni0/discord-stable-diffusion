@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse
+from datetime import datetime
+from io import BytesIO
 import shlex
 import os
 import re
@@ -15,15 +17,21 @@ from ldm.dream.image_util import make_grid
 from omegaconf import OmegaConf
 from lstein_stable_diffusion.scripts.dream import create_argv_parser, create_cmd_parser
 
+from PIL import Image
+
 from typing import Optional
 from discord.ext import commands
 import discord
 from discord import option
+import logging as lg
 
 # Based partly on https://github.com/harubaru/discord-stable-diffusion
 class StableDiffusionCog(commands.Cog):
     def __init__(self, bot):
+        self.logger = lg.getLogger(__name__)
         self.bot = bot
+        self.running_sd = False
+        self.t2i = self.init_t2i()
 
     @commands.slash_command()
     @option("pongis", str, description="asd", required=True)
@@ -32,15 +40,64 @@ class StableDiffusionCog(commands.Cog):
 
     @commands.slash_command(description="Generate image from text")
     @option("prompt", str, description="A text prompt for the model", required=True)
-    @option("more", str, description="asd", required=False)
-    async def t2i(self, ctx: discord.ApplicationContext, *, prompt: str, more: Optional[int]):
-        print(
-            f"Request -- {ctx.author.name}#{ctx.author.discriminator} -- Prompt: {prompt}"
-        )
-        await ctx.defer()
-        await ctx.followup.send(f"prompt")
+    @option("n", int, description="Number of images to generate", required=False)
+    async def txt2img(
+        self, ctx: discord.ApplicationContext, *, prompt: str, n: Optional[int] = 1
+    ):
 
-    async def init_t2i(self):
+        assert n > 0
+        await ctx.defer()
+
+        author = f"{ctx.author.name}#{ctx.author.discriminator}"
+
+        self.running_sd = True
+
+        # Use the argument parser defaults
+        prompt_parser = create_cmd_parser()
+        opt_prompt = prompt_parser.parse_args([prompt, f"-n{n}"])
+
+        # preload the model
+        self.t2i.load_model()
+
+        current_outdir = self.opt.outdir
+        if not os.path.exists(current_outdir):
+            os.makedirs(current_outdir)
+
+        tic = time.time()
+        results = self.t2i.prompt2image(image_callback=None, **vars(opt_prompt))
+        duration = time.time() - tic
+        images, seeds = tuple(zip(*results))
+
+        discord_images = []
+        for img, seed in zip(images, seeds):
+            time_str = datetime.now().strftime("%Y%d%m-%H%M%S")
+            file_name = f"[{time_str}]_{prompt}_{seed}_({author}).png"
+            buffer = BytesIO()
+            img.save(buffer, format="PNG")
+            # Reset stream position to the start (so it can be read by discord.File)
+            buffer.seek(0)
+
+            # Convert to a discord file object that can be sent to the guild
+            discord_img = discord.File(buffer, filename=file_name)
+            discord_images.append(discord_img)
+        
+        embed = discord.Embed()
+        embed.color = discord.Colour.fuchsia()
+        seeds_str = "|".join([str(_) for _ in seeds])
+        s = "" if n == 1 else "s"
+        embed.set_footer(text=f"Prompt({prompt}), seed{s}({seeds_str}), duration({duration}))")
+        await ctx.followup.send(embed=embed, files=discord_images)
+
+    @commands.slash_command(description="Generate image from text")
+    @option("echo", str, description="Text to echo back", required=False)
+    async def echo(
+        self, ctx: discord.ApplicationContext, *, txt: Optional[str] = "<blank>"
+    ):
+        await ctx.defer()
+
+        await ctx.followup.send(f"ECHO: {txt}")
+
+    def init_t2i(self):
         # Use the argument parser defaults
         parser = create_argv_parser()
         self.opt = parser.parse_args()
@@ -49,7 +106,8 @@ class StableDiffusionCog(commands.Cog):
         config = "lstein_stable_diffusion/configs/stable-diffusion/v1-inference.yaml"
         weights = "./model.ckpt"
 
-        print("Initialising...\n")
+        self.logger.info("Initialising txt2img...")
+        print("Initialising txt2img...")
         from pytorch_lightning import logging
         from ldm.generate import Generate
 
@@ -81,26 +139,9 @@ class StableDiffusionCog(commands.Cog):
             ignore_ctrl_c=self.opt.infile is None,
         )
 
+        self.logger.info("Initialised txt2img")
+        print("Initialised txt2img")
         return t2i
-
-    def txt2img(self, prompt="pogge"):
-
-        # Use the argument parser defaults
-        prompt_parser = create_cmd_parser()
-        opt_prompt = prompt_parser.parse_args([prompt, "-n2"])
-
-        # preload the model
-        self.t2i.load_model()
-
-        do_grid = opt_prompt.grid or self.t2i.grid
-
-        current_outdir = self.opt.outdir
-        if not os.path.exists(current_outdir):
-            os.makedirs(current_outdir)
-
-        results = self.t2i.prompt2image(image_callback=None, **vars(opt_prompt))
-
-        return results
 
 
 def setup(bot):

@@ -8,9 +8,11 @@ from bot_commands import makeBotCommands
 from discord_bot import StableDiffusionBot
 
 logger = logging.getLogger(__name__)
-logging_format = '[%(asctime)s] %(name)s:%(levelname)s %(message)s'
-logging.basicConfig(filename='bot.log', filemode='w',
-                    format=logging_format, level=logging.INFO)
+logging_format = "[%(asctime)s] %(name)s:%(levelname)s %(message)s"
+logging.basicConfig(
+    filename="bot.log", filemode="w", format=logging_format, level=logging.INFO
+)
+
 
 def main():
     # Load ini
@@ -37,10 +39,8 @@ def main():
         intents=intents,
     )
 
-    makeBotCommands(bot)
-
-
     bot.run(DISCORD_TOKEN)
+
 
 if __name__ == "__main__":
     main()
