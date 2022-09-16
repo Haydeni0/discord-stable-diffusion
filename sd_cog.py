@@ -82,8 +82,8 @@ class StableDiffusionCog(commands.Cog):
     ):
         await ctx.defer()
 
-        error_embed = discord.Embed()
-        error_embed.colour = discord.Colour.red()
+        error_embed = discord.Embed(colour=discord.Colour.red())
+        msg_embed = discord.Embed(colour=discord.Colour.fuchsia())
         if not (1 <= n <= 10):
             error_embed.set_footer(text="Error, n must be between 1 and 10 inclusive")
             await ctx.followup.send(embed=error_embed)
@@ -153,14 +153,31 @@ class StableDiffusionCog(commands.Cog):
         embed.color = discord.Colour.fuchsia()
         seeds_str = "|".join([str(_) for _ in seeds])
         s = "" if n == 1 else "s"
-        embed.set_footer(
-            text=f'"{prompt}"\nseed{s}: {seeds_str}, duration: {duration:1f}'
+        msg_embed.add_field(
+            name=prompt, value=f"seed{s}: {seeds_str}, duration: {duration:1f}"
         )
-        await ctx.followup.send(embed=embed, files=discord_images)
+        await ctx.followup.send(embed=msg_embed, files=discord_images)
 
-        
+    @commands.slash_command(description="[DEBUG] Send test message with embedding")
+    async def embed(self, ctx: discord.ApplicationContext):
+        await ctx.defer()
+        embed = discord.Embed(colour=discord.Colour.fuchsia())
+        embed.set_author(name=f"author")
+        embed.add_field(name="fieldname", value="fieldvalue1", inline=False)
+        embed.add_field(name="fieldname_inline", value="fieldvalue2", inline=True)
+        embed.set_footer(text=f"footer")
+        try:
+            embed.set_thumbnail(
+                url="https://is4-ssl.mzstatic.com/image/thumb/Purple71/v4/ea/c0/40/eac0409e-27bf-3f55-a14f-f5818b70523c/source/256x256bb.jpg"
+            )
+            embed.set_image(
+                url="https://sygicwebmapstiles-d.azureedge.net/d422be30-94e3-4d8b-9724-8767e6daa1cf/16/32732/21801.png?sv=2017-07-29&sr=b&sig=QZVb%2B4XZXFi9x39RZ4Usp5AqlBQKMMcHkwWyuqQ0oq0%3D&se=2022-09-25T00%3A00%3A00Z&sp=r&rev=b"
+            )
+        except:
+            self.logger("Embed URL no longer works")
+        await ctx.followup.send(embed=embed, content="test")
 
-    @commands.slash_command(description="Generate image from text")
+    @commands.slash_command(description="Echo back a message")
     @option("echo", str, description="Text to echo back", required=False)
     async def echo(
         self, ctx: discord.ApplicationContext, *, txt: Optional[str] = "<blank>"
