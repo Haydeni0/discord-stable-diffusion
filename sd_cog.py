@@ -85,7 +85,16 @@ class StableDiffusionCog(commands.Cog):
         error_embed = discord.Embed(colour=discord.Colour.red())
         msg_embed = discord.Embed(colour=discord.Colour.fuchsia())
         if not (1 <= n <= 10):
-            error_embed.set_footer(text="Error, n must be between 1 and 10 inclusive")
+            err_msg = f"Error: n = {n} (n must be between 1 and 10, inclusive)"
+            self.logger.warning(err_msg)
+            error_embed.set_footer(text=err_msg)
+            await ctx.followup.send(embed=error_embed)
+            return
+        max_pixels = 1638400
+        if width*height > max_pixels:
+            err_msg = f"Error: image too large (width*height > {max_pixels})"
+            self.logger.warning(err_msg)
+            error_embed.set_footer(text=err_msg)
             await ctx.followup.send(embed=error_embed)
             return
 
