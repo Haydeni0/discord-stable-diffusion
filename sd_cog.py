@@ -27,11 +27,13 @@ import logging as lg
 
 # Based partly on https://github.com/harubaru/discord-stable-diffusion
 class StableDiffusionCog(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.logger = lg.getLogger(__name__)
         self.bot = bot
         self.running_sd = False
         self.t2i = self.init_t2i()
+        
+    
 
     @commands.slash_command(description="Generate image from text")
     @option("prompt", str, description="A text prompt for the model", required=True)
@@ -75,12 +77,14 @@ class StableDiffusionCog(commands.Cog):
             # Convert to a discord file object that can be sent to the guild
             discord_img = discord.File(buffer, filename=file_name)
             discord_images.append(discord_img)
-        
+
         embed = discord.Embed()
         embed.color = discord.Colour.fuchsia()
         seeds_str = "|".join([str(_) for _ in seeds])
         s = "" if n == 1 else "s"
-        embed.set_footer(text=f"\"{prompt}\"\nseed{s}: {seeds_str}, duration: {duration:1f}")
+        embed.set_footer(
+            text=f'"{prompt}"\nseed{s}: {seeds_str}, duration: {duration:1f}'
+        )
         await ctx.followup.send(embed=embed, files=discord_images)
 
     @commands.slash_command(description="Generate image from text")

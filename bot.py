@@ -20,21 +20,15 @@ def main():
     config.read("config.ini")
     DISCORD_TOKEN = config.get("auth", "DISCORD_TOKEN")
 
-    # Define the bot command prefix in the config
-    if config.has_option("options", "command_prefix"):
-        command_prefix = config.get("options", "command_prefix")
-    else:
-        command_prefix = "/"
-
-    logging.info(f"Starting bot using command prefix {command_prefix}")
-    print(f"Starting bot using command prefix {command_prefix}")
+    logging.info(f"Starting bot")
+    print(f"Starting bot")
 
     # Create intents
     intents = Intents.default()
     intents.message_content = True
     # Create discord bot
     bot = StableDiffusionBot(
-        command_prefix=command_prefix,
+        command_prefix="/",
         description="Bot hosted on Hayden's PC (and GPU) \n[https://github.com/Haydeni0/discord-stable-diffusion]",
         intents=intents,
     )
