@@ -88,24 +88,20 @@ class StableDiffusionCog(commands.Cog):
             error_embed.set_footer(text="Error, n must be between 1 and 10 inclusive")
             await ctx.followup.send(embed=error_embed)
             return
-        # Round (absolute) width and height up to the closest multiple of 64
-        width = 64 if width == 0 else abs(width)
-        height = 64 if height == 0 else abs(height)
-        width = width + 64 * math.ceil((width % 64)/64)
-        height = height + 64 * math.ceil((width % 64)/64)
 
+        # Author of the message
         author = f"{ctx.author.name}-{ctx.author.discriminator}"
 
         # Create query for the query parser
         query = [
-                prompt,
-                f"-n{n}",
-                f"-W{width}",
-                f"-H{height}",
-                f"-C{cfg_scale}",
-                None if seed is None else f"-S{seed}",
-                f"-s{steps}",
-            ]
+            prompt,
+            f"-n{n}",
+            f"-W{width}",
+            f"-H{height}",
+            f"-C{cfg_scale}",
+            None if seed is None else f"-S{seed}",
+            f"-s{steps}",
+        ]
         query = [_ for _ in query if _ is not None]
 
         # Since the argparser doesn't do proper logging, we have to capture the stderr to log it properly
@@ -130,18 +126,44 @@ class StableDiffusionCog(commands.Cog):
         discord_images = []
         current_outdir = self.opt.outdir
         if not os.path.exists(current_outdir):
-            os.makedirs(current_outdir)    
+            os.makedirs(current_outdir)
         for img, seed in zip(images, seeds):
             time_str = datetime.now().strftime("%Y%d%m-%H%M%S")
             file_name = f"{time_str}_{prompt}_{seed}_{author}.png"
             file_path = os.path.join(current_outdir, file_name)
 
             # Save to file
-            img.save(file_path, format = "PNG")
+            img.save(file_path, format="PNG")
 
             # Save to bytes buffer
             buffer = BytesIO()
             img.save(buffer, format="PNG")
+
+            # Check if the file is larger than 8 million bytes (discord upload limit is 8MB != 8 million bytes?)
+            size_limit = 8_000_000
+            if buffer.__sizeof__() > size_limit:
+                file_name = file_name.replace(".png", ".jpeg")
+                buffer = BytesIO()
+                img.save(buffer, format="JPEG")
+                msg_embed.set_footer(
+                    text="[File quality reduced to fit under the discord 8MB limit]"
+                )
+
+            jpeg_quality = 100
+            while buffer.__sizeof__() > size_limit and jpeg_quality > 1:
+                buffer = BytesIO()
+                img.save(buffer, format="JPEG", optimize=True, quality=jpeg_quality)
+                jpeg_quality -= 5
+            if buffer.__sizeof__() > size_limit:
+                self.logger.warning(
+                    f"Image too large to be sent to discord ({buffer.__sizeof__()} bytes)"
+                )
+                error_embed.set_footer(
+                    text=f"Image too large to be sent to discord ({buffer.__sizeof__()} bytes). Saved to disk."
+                )
+                await ctx.followup.send(embed=error_embed)
+                return
+
             # Reset stream position to the start (so it can be read by discord.File)
             buffer.seek(0)
 
@@ -149,8 +171,6 @@ class StableDiffusionCog(commands.Cog):
             discord_img = discord.File(buffer, filename=file_name)
             discord_images.append(discord_img)
 
-        embed = discord.Embed()
-        embed.color = discord.Colour.fuchsia()
         seeds_str = "|".join([str(_) for _ in seeds])
         s = "" if n == 1 else "s"
         msg_embed.add_field(
