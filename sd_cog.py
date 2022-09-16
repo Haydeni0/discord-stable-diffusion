@@ -89,8 +89,10 @@ class StableDiffusionCog(commands.Cog):
             await ctx.followup.send(embed=error_embed)
             return
         # Round (absolute) width and height up to the closest multiple of 64
-        width = abs(width) + 64 - (abs(width) % 64)
-        height = abs(height) + 64 - (abs(height) % 64)
+        width = 64 if width == 0 else abs(width)
+        height = 64 if height == 0 else abs(height)
+        width = width + 64 * math.ceil((width % 64)/64)
+        height = height + 64 * math.ceil((width % 64)/64)
 
         author = f"{ctx.author.name}-{ctx.author.discriminator}"
 
