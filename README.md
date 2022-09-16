@@ -80,8 +80,6 @@ A discord bot that runs the Stable Diffusion text-to-image model on a local GPU 
   - 
 ### Development
 - Add error handling to the commands
-- Add a feature where gene is disabled by default in channels with a certain name, reverted with a config.ini option
-  - Useful for development where 2 genes can run at the same time, but still use differentiated slash commands
 
 - Don't let txt2img automatically save the images, put that functionality in a separate routine
 - Make sure two parallel txt2img things dont occur, give a warning if a txt2img is called again without finishing the previous one
