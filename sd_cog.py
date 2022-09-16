@@ -92,7 +92,7 @@ class StableDiffusionCog(commands.Cog):
         width = abs(width) + 64 - (abs(width) % 64)
         height = abs(height) + 64 - (abs(height) % 64)
 
-        author = f"{ctx.author.name}#{ctx.author.discriminator}"
+        author = f"{ctx.author.name}-{ctx.author.discriminator}"
 
         # Create query for the query parser
         query = [
@@ -124,11 +124,20 @@ class StableDiffusionCog(commands.Cog):
         duration = time.time() - tic
         images, seeds = tuple(zip(*results))
 
-        # Return txt2img results
+        # Return txt2img results to discord, and save
         discord_images = []
+        current_outdir = self.opt.outdir
+        if not os.path.exists(current_outdir):
+            os.makedirs(current_outdir)    
         for img, seed in zip(images, seeds):
             time_str = datetime.now().strftime("%Y%d%m-%H%M%S")
-            file_name = f"[{time_str}]_{prompt}_{seed}_({author}).png"
+            file_name = f"{time_str}_{prompt}_{seed}_{author}.png"
+            file_path = os.path.join(current_outdir, file_name)
+
+            # Save to file
+            img.save(file_path, format = "PNG")
+
+            # Save to bytes buffer
             buffer = BytesIO()
             img.save(buffer, format="PNG")
             # Reset stream position to the start (so it can be read by discord.File)
@@ -147,10 +156,7 @@ class StableDiffusionCog(commands.Cog):
         )
         await ctx.followup.send(embed=embed, files=discord_images)
 
-        # Also save images
-        # current_outdir = self.opt.outdir
-        # if not os.path.exists(current_outdir):
-        #     os.makedirs(current_outdir)
+        
 
     @commands.slash_command(description="Generate image from text")
     @option("echo", str, description="Text to echo back", required=False)
