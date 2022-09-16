@@ -66,16 +66,30 @@ A discord bot that runs the Stable Diffusion text-to-image model on a local GPU 
 ---
 
 ## To-do
-- Add error handling to the commands
-- Don't let txt2img automatically save the images, put that functionality in a separate routine
-- Capture the console output so that the loading bar can be shown in discord, the lstein fork does this somehow
+
+### Features
+- img2img
 - Add capability to change txt2img options from discord
-- Add img2img
-- Make discord bot quality of life improvements, maybe based on [this bot by harubaru](https://github.com/harubaru/discord-stable-diffusion)
-- Make sure two parallel txt2img things dont occur, give a warning if a txt2img is called again without finishing the previous one
-  - Or maybe allow it by putting them in a queue (with a max length), and run them serially so the gpu isn't working on 2 at once
+- Add option that automatically prefixes prompts with stuff like "4K, 8K, high resolution, award winning, ..."
+  - To automatically improve quality of image outputs without typing
+
+### QOL
+- Capture the console output so that the loading bar can be shown in discord, the lstein fork does this somehow
 - Preload the model like the lstein fork does?
   - Or just keep it loaded between queued prompts
+  - 
+### Development
+- Add error handling to the commands
+- Add a feature where gene is disabled by default in channels with a certain name, reverted with a config.ini option
+  - Useful for development where 2 genes can run at the same time, but still use differentiated slash commands
+
+- Don't let txt2img automatically save the images, put that functionality in a separate routine
+- Make sure two parallel txt2img things dont occur, give a warning if a txt2img is called again without finishing the previous one
+  - Or maybe allow it by putting them in a queue (with a max length), and run them serially so the gpu isn't working on 2 at once
+
+
+
+
 
 
 
