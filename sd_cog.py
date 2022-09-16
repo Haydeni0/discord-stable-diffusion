@@ -82,28 +82,35 @@ class StableDiffusionCog(commands.Cog):
     ):
         await ctx.defer()
 
-        error_embed = discord.Embed()
-        error_embed.colour = discord.Colour.red()
+        error_embed = discord.Embed(colour=discord.Colour.red())
+        msg_embed = discord.Embed(colour=discord.Colour.fuchsia())
         if not (1 <= n <= 10):
-            error_embed.set_footer(text="Error, n must be between 1 and 10 inclusive")
+            err_msg = f"Error: n = {n} (n must be between 1 and 10, inclusive)"
+            self.logger.warning(err_msg)
+            error_embed.set_footer(text=err_msg)
             await ctx.followup.send(embed=error_embed)
             return
-        # Round (absolute) width and height up to the closest multiple of 64
-        width = abs(width) + 64 - (abs(width) % 64)
-        height = abs(height) + 64 - (abs(height) % 64)
+        max_pixels = 1638400
+        if width*height > max_pixels:
+            err_msg = f"Error: image too large (width*height > {max_pixels})"
+            self.logger.warning(err_msg)
+            error_embed.set_footer(text=err_msg)
+            await ctx.followup.send(embed=error_embed)
+            return
 
-        author = f"{ctx.author.name}#{ctx.author.discriminator}"
+        # Author of the message
+        author = f"{ctx.author.name}-{ctx.author.discriminator}"
 
         # Create query for the query parser
         query = [
-                prompt,
-                f"-n{n}",
-                f"-W{width}",
-                f"-H{height}",
-                f"-C{cfg_scale}",
-                None if seed is None else f"-S{seed}",
-                f"-s{steps}",
-            ]
+            prompt,
+            f"-n{n}",
+            f"-W{width}",
+            f"-H{height}",
+            f"-C{cfg_scale}",
+            None if seed is None else f"-S{seed}",
+            f"-s{steps}",
+        ]
         query = [_ for _ in query if _ is not None]
 
         # Since the argparser doesn't do proper logging, we have to capture the stderr to log it properly
@@ -124,13 +131,48 @@ class StableDiffusionCog(commands.Cog):
         duration = time.time() - tic
         images, seeds = tuple(zip(*results))
 
-        # Return txt2img results
+        # Return txt2img results to discord, and save
         discord_images = []
+        current_outdir = self.opt.outdir
+        if not os.path.exists(current_outdir):
+            os.makedirs(current_outdir)
         for img, seed in zip(images, seeds):
             time_str = datetime.now().strftime("%Y%d%m-%H%M%S")
-            file_name = f"[{time_str}]_{prompt}_{seed}_({author}).png"
+            file_name = f"{time_str}_{prompt}_{seed}_{author}.png"
+            file_path = os.path.join(current_outdir, file_name)
+
+            # Save to file
+            img.save(file_path, format="PNG")
+
+            # Save to bytes buffer
             buffer = BytesIO()
             img.save(buffer, format="PNG")
+
+            # Check if the file is larger than 8 million bytes (discord upload limit is 8MB I think != 8 million bytes)
+            size_limit = 8_000_000
+            if buffer.__sizeof__() > size_limit:
+                file_name = file_name.replace(".png", ".jpeg")
+                buffer = BytesIO()
+                img.save(buffer, format="JPEG")
+                msg_embed.set_footer(
+                    text="[File quality reduced to fit under the discord 8MB limit]"
+                )
+
+            jpeg_quality = 100
+            while buffer.__sizeof__() > size_limit and jpeg_quality > 1:
+                buffer = BytesIO()
+                img.save(buffer, format="JPEG", optimize=True, quality=jpeg_quality)
+                jpeg_quality -= 5
+            if buffer.__sizeof__() > size_limit:
+                self.logger.warning(
+                    f"Image too large to be sent to discord ({buffer.__sizeof__()} bytes)"
+                )
+                error_embed.set_footer(
+                    text=f"Image too large to be sent to discord ({buffer.__sizeof__()} bytes). Saved to disk."
+                )
+                await ctx.followup.send(embed=error_embed)
+                return
+
             # Reset stream position to the start (so it can be read by discord.File)
             buffer.seek(0)
 
@@ -138,21 +180,69 @@ class StableDiffusionCog(commands.Cog):
             discord_img = discord.File(buffer, filename=file_name)
             discord_images.append(discord_img)
 
-        embed = discord.Embed()
-        embed.color = discord.Colour.fuchsia()
         seeds_str = "|".join([str(_) for _ in seeds])
         s = "" if n == 1 else "s"
-        embed.set_footer(
-            text=f'"{prompt}"\nseed{s}: {seeds_str}, duration: {duration:1f}'
+        msg_embed.add_field(
+            name=prompt, value=f"seed{s}: {seeds_str}, duration: {duration:1f}"
         )
-        await ctx.followup.send(embed=embed, files=discord_images)
+        
+        # Try to send as a batch of files
+        # If that doesn't work because the files altogether go over the discord upload limit, then send one by one
+        try:
+            await ctx.followup.send(embed=msg_embed, files=discord_images)
+        except:
+            await ctx.followup.send(content="Files too large to be sent in batch, sending one by one:")
+            # Reset file buffers for each image
+            [_.reset() for _ in discord_images]
+            for j in range(n-1):
+                await ctx.send(file=discord_images[j])
+            await ctx.send(embed=msg_embed, file=discord_images[n-1])
+            
 
-        # Also save images
-        # current_outdir = self.opt.outdir
-        # if not os.path.exists(current_outdir):
-        #     os.makedirs(current_outdir)
+    @commands.slash_command(description="[DEBUG] Send multiple square images to discord")
+    @option("n", int, description = "Number of images to send", required = False)
+    @option("width", int, description = "Width (and height) of images to send", required = False)
+    @option("batch", int, description = "If true send images in one message, otherwise send separately", required = False)
+    async def sendimages(self, ctx: discord.ApplicationContext, n: int = 1, width:  int = 512, batch: bool = True):
+        await ctx.defer()
+        embed = discord.Embed(colour=discord.Colour.fuchsia())
+        discord_images = []
+        # Only generate one image, and just send the same one
+        img = Image.effect_noise((width, width), 0.2)
+        for j in range(n):
+            buffer = BytesIO()
+            img.save(buffer, format="PNG")
+            buffer.seek(0)
+            discord_img = discord.File(buffer, filename=f"{j}.png")
+            discord_images.append(discord_img)
+        
+        if batch:
+            await ctx.followup.send(files=discord_images)
+        else:
+            await ctx.followup.send(content="Images:")
+            for dimg in discord_images:
+                await ctx.send(file = dimg)
 
-    @commands.slash_command(description="Generate image from text")
+    @commands.slash_command(description="[DEBUG] Send test message with embedding")
+    async def embed(self, ctx: discord.ApplicationContext):
+        await ctx.defer()
+        embed = discord.Embed(colour=discord.Colour.fuchsia())
+        embed.set_author(name=f"author")
+        embed.add_field(name="fieldname", value="fieldvalue1", inline=False)
+        embed.add_field(name="fieldname_inline", value="fieldvalue2", inline=True)
+        embed.set_footer(text=f"footer")
+        try:
+            embed.set_thumbnail(
+                url="https://is4-ssl.mzstatic.com/image/thumb/Purple71/v4/ea/c0/40/eac0409e-27bf-3f55-a14f-f5818b70523c/source/256x256bb.jpg"
+            )
+            embed.set_image(
+                url="https://sygicwebmapstiles-d.azureedge.net/d422be30-94e3-4d8b-9724-8767e6daa1cf/16/32732/21801.png?sv=2017-07-29&sr=b&sig=QZVb%2B4XZXFi9x39RZ4Usp5AqlBQKMMcHkwWyuqQ0oq0%3D&se=2022-09-25T00%3A00%3A00Z&sp=r&rev=b"
+            )
+        except:
+            self.logger("Embed URL no longer works")
+        await ctx.followup.send(embed=embed, content="test")
+
+    @commands.slash_command(description="Echo back a message")
     @option("echo", str, description="Text to echo back", required=False)
     async def echo(
         self, ctx: discord.ApplicationContext, *, txt: Optional[str] = "<blank>"
