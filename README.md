@@ -72,12 +72,14 @@ A discord bot that runs the Stable Diffusion text-to-image model on a local GPU 
 - Add capability to change txt2img options from discord
 - Add option that automatically prefixes prompts with stuff like "4K, 8K, high resolution, award winning, ..."
   - To automatically improve quality of image outputs without typing
+- Upscaling
+- Make a command to cancel the bot generation if it's taking too long
 
 ### QOL
 - Capture the console output so that the loading bar can be shown in discord, the lstein fork does this somehow
-- Preload the model like the lstein fork does?
-  - Or just keep it loaded between queued prompts
-  - 
+- Unload the model after some time
+
+
 ### Development
 - Add error handling to the commands
 

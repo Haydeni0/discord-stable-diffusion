@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime
-from io import BytesIO
+from io import BytesIO, StringIO
+import math
 import shlex
 import os
 import re
+from statistics import quantiles
 import sys
 import copy
 import warnings
@@ -16,6 +19,8 @@ from ldm.dream.server import DreamServer, ThreadingDreamServer
 from ldm.dream.image_util import make_grid
 from omegaconf import OmegaConf
 from lstein_stable_diffusion.scripts.dream import create_argv_parser, create_cmd_parser
+
+from utils import getImageFromUrl, discordFilename, run_in_executor
 
 from PIL import Image
 
@@ -30,41 +35,96 @@ class StableDiffusionCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.logger = lg.getLogger(__name__)
         self.bot = bot
-        self.running_sd = False
+        self.sd_query_in_progress = False
         self.t2i = self.init_t2i()
-        
-    
 
     @commands.slash_command(description="Generate image from text")
     @option("prompt", str, description="A text prompt for the model", required=True)
-    @option("n", int, description="Number of images to generate", required=False)
+    @option(
+        "n", int, description="Number of images to generate [default:1]", required=False
+    )
+    @option(
+        "width",
+        int,
+        description="Image width, multiple of 64 [default:512]",
+        required=False,
+    )
+    @option(
+        "height",
+        int,
+        description="Image height, multiple of 64 [default:512]",
+        required=False,
+    )
+    @option(
+        "cfg_scale",
+        int,
+        description='Classifier free guidance (CFG) scale - higher numbers cause generator to "try" harder [default:7.5]',
+        required=False,
+    )
+    @option("seed", int, description="Image seed [default:random]", required=False)
+    @option(
+        "steps",
+        int,
+        description="Number of sampling steps [default:50]",
+        required=False,
+    )
     async def txt2img(
-        self, ctx: discord.ApplicationContext, *, prompt: str, n: Optional[int] = 1
+        self,
+        ctx: discord.ApplicationContext,
+        *,
+        prompt: str,
+        n: Optional[int] = 1,
+        width: Optional[int] = 512,
+        height: Optional[int] = 512,
+        cfg_scale: Optional[float] = 7.5,
+        seed: Optional[int],
+        steps: Optional[int] = 50,
     ):
-
-        assert n > 0
         await ctx.defer()
+
+        error_embed = discord.Embed()
+        error_embed.colour = discord.Colour.red()
+        if not (1 <= n <= 10):
+            error_embed.set_footer(text="Error, n must be between 1 and 10 inclusive")
+            await ctx.followup.send(embed=error_embed)
+            return
+        # Round (absolute) width and height up to the closest multiple of 64
+        width = abs(width) + 64 - (abs(width) % 64)
+        height = abs(height) + 64 - (abs(height) % 64)
 
         author = f"{ctx.author.name}#{ctx.author.discriminator}"
 
-        self.running_sd = True
+        # Create query for the query parser
+        query = [
+                prompt,
+                f"-n{n}",
+                f"-W{width}",
+                f"-H{height}",
+                f"-C{cfg_scale}",
+                None if seed is None else f"-S{seed}",
+                f"-s{steps}",
+            ]
+        query = [_ for _ in query if _ is not None]
 
-        # Use the argument parser defaults
-        prompt_parser = create_cmd_parser()
-        opt_prompt = prompt_parser.parse_args([prompt, f"-n{n}"])
+        # Since the argparser doesn't do proper logging, we have to capture the stderr to log it properly
+        with redirect_stderr(StringIO()) as stderr:
+            try:
+                query_parser = create_cmd_parser()
+                query_opt = query_parser.parse_args(query)
+            except:
+                self.logger.error(stderr.getvalue())
+                error_embed.set_footer(text="Argument error, check logs")
+                await ctx.followup.send(embed=error_embed)
+                return
 
-        # preload the model
-        self.t2i.load_model()
-
-        current_outdir = self.opt.outdir
-        if not os.path.exists(current_outdir):
-            os.makedirs(current_outdir)
+        self.sd_query_in_progress = True
 
         tic = time.time()
-        results = self.t2i.prompt2image(image_callback=None, **vars(opt_prompt))
+        results = self.t2i.prompt2image(image_callback=None, **vars(query_opt))
         duration = time.time() - tic
         images, seeds = tuple(zip(*results))
 
+        # Return txt2img results
         discord_images = []
         for img, seed in zip(images, seeds):
             time_str = datetime.now().strftime("%Y%d%m-%H%M%S")
@@ -86,6 +146,11 @@ class StableDiffusionCog(commands.Cog):
             text=f'"{prompt}"\nseed{s}: {seeds_str}, duration: {duration:1f}'
         )
         await ctx.followup.send(embed=embed, files=discord_images)
+
+        # Also save images
+        # current_outdir = self.opt.outdir
+        # if not os.path.exists(current_outdir):
+        #     os.makedirs(current_outdir)
 
     @commands.slash_command(description="Generate image from text")
     @option("echo", str, description="Text to echo back", required=False)
