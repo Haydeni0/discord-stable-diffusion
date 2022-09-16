@@ -1,3 +1,4 @@
+from typing import Tuple
 import requests
 import re
 import os
@@ -6,8 +7,9 @@ import discord
 import io
 import functools
 import asyncio
+import math
 
-def getImageFromUrl(url: str):
+def getImageFromUrl(url: str) -> Image.Image:
     img_bytes = requests.get(url).content
 
     img = Image.open(io.BytesIO(img_bytes))
@@ -32,18 +34,22 @@ def discordFilename(attachment: discord.message.Attachment):
     return filename
 
 
-def saveImageFromUrl(url: str, filename: str = None) -> str:
-    img_data = requests.get(url).content
+def saveImageFromUrl(url: str, download_path: str, max_size: int) -> str:
+    img = getImageFromUrl(url)
 
-    download_folder = "./downloads"
-    if not os.path.exists(download_folder):
-        os.makedirs(download_folder, exist_ok=True)
+    if max_size is not None and max(img.size) > max_size:
+        scale_factor = max(img.size) / max_size
+        new_size = tuple(math.ceil(sz / scale_factor) for sz in img.size)
+        img = img.resize(new_size)
 
-    save_path = os.path.join(download_folder, filename)
 
-    # Save image (binary)
-    with open(save_path, "wb") as input_img:
-        input_img.write(img_data)
+    os.makedirs(download_path, exist_ok=True)
+
+    # Get filename from url using the last segment
+    filename = re.split("/", url)[-1]
+    save_path = os.path.join(download_path, filename)
+
+    img.save(save_path, "PNG")
 
     return save_path
 

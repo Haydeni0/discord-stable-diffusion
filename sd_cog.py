@@ -20,7 +20,7 @@ from ldm.dream.image_util import make_grid
 from omegaconf import OmegaConf
 from lstein_stable_diffusion.scripts.dream import create_argv_parser, create_cmd_parser
 
-from utils import getImageFromUrl, discordFilename, run_in_executor
+from utils import getImageFromUrl, discordFilename, run_in_executor, saveImageFromUrl
 
 from PIL import Image
 
@@ -36,7 +36,7 @@ class StableDiffusionCog(commands.Cog):
         self.logger = lg.getLogger(__name__)
         self.bot = bot
         self.sd_query_in_progress = False
-        self.t2i = self.init_t2i()
+        self.t2i = self._init_t2i()
 
     @commands.slash_command(description="Generate image from text")
     @option("prompt", str, description="A text prompt for the model", required=True)
@@ -68,6 +68,18 @@ class StableDiffusionCog(commands.Cog):
         description="Number of sampling steps [default:50]",
         required=False,
     )
+    @option(
+        "url",
+        str,
+        description="URL for an input image to modify using the prompt (supersedes width and height)",
+        required=False,
+    )
+    @option(
+        "strength",
+        float,
+        description="Strength for noising the input image. 0.0 preserves image, 1.0 replaces it [default:0.7]",
+        required=False,
+    )
     async def txt2img(
         self,
         ctx: discord.ApplicationContext,
@@ -79,24 +91,37 @@ class StableDiffusionCog(commands.Cog):
         cfg_scale: Optional[float] = 7.5,
         seed: Optional[int],
         steps: Optional[int] = 50,
+        url: Optional[str],
+        strength: Optional[float] = 0.7,
     ):
         await ctx.defer()
 
         error_embed = discord.Embed(colour=discord.Colour.red())
         msg_embed = discord.Embed(colour=discord.Colour.fuchsia())
         if not (1 <= n <= 10):
-            err_msg = f"Error: n = {n} (n must be between 1 and 10, inclusive)"
-            self.logger.warning(err_msg)
-            error_embed.set_footer(text=err_msg)
-            await ctx.followup.send(embed=error_embed)
+            await self.sendError(f"Error: n = {n} (n must be between 1 and 10, inclusive)", ctx)
             return
         max_pixels = 1638400
-        if width*height > max_pixels:
-            err_msg = f"Error: image too large (width*height > {max_pixels})"
-            self.logger.warning(err_msg)
-            error_embed.set_footer(text=err_msg)
-            await ctx.followup.send(embed=error_embed)
+        if width * height > max_pixels:
+            await self.sendError(f"Error: image too large (width*height > {max_pixels})", ctx)
             return
+        if not (0 < strength < 1):
+            await self.sendError(f"Error: strength = {strength} (strength must be between 0 and 1)", ctx)
+            return
+
+        
+        output_path = self.opt.outdir
+        download_path = "./downloads"
+        os.makedirs(output_path, exist_ok=True)
+        os.makedirs(download_path, exist_ok=True)
+
+        # Check if initial image is supplied
+        if url is not None:
+            try:
+                init_img_path = saveImageFromUrl(url, download_path, max_size=max(width, height))
+            except:
+                await self.sendError(f"Error: image could not be downloaded from url", ctx)
+                return
 
         # Author of the message
         author = f"{ctx.author.name}-{ctx.author.discriminator}"
@@ -110,6 +135,7 @@ class StableDiffusionCog(commands.Cog):
             f"-C{cfg_scale}",
             None if seed is None else f"-S{seed}",
             f"-s{steps}",
+            None if url is None else f"-I{init_img_path}"
         ]
         query = [_ for _ in query if _ is not None]
 
@@ -127,19 +153,21 @@ class StableDiffusionCog(commands.Cog):
         self.sd_query_in_progress = True
 
         tic = time.time()
+
         results = self.t2i.prompt2image(image_callback=None, **vars(query_opt))
         duration = time.time() - tic
+
+        if len(results) == 0:
+            await self.sendError("No images created, likely out of VRAM", ctx)
+            return
         images, seeds = tuple(zip(*results))
 
         # Return txt2img results to discord, and save
         discord_images = []
-        current_outdir = self.opt.outdir
-        if not os.path.exists(current_outdir):
-            os.makedirs(current_outdir)
         for img, seed in zip(images, seeds):
             time_str = datetime.now().strftime("%Y%d%m-%H%M%S")
             file_name = f"{time_str}_{prompt}_{seed}_{author}.png"
-            file_path = os.path.join(current_outdir, file_name)
+            file_path = os.path.join(output_path, file_name)
 
             # Save to file
             img.save(file_path, format="PNG")
@@ -185,25 +213,41 @@ class StableDiffusionCog(commands.Cog):
         msg_embed.add_field(
             name=prompt, value=f"seed{s}: {seeds_str}, duration: {duration:1f}"
         )
-        
+
         # Try to send as a batch of files
         # If that doesn't work because the files altogether go over the discord upload limit, then send one by one
         try:
             await ctx.followup.send(embed=msg_embed, files=discord_images)
         except:
-            await ctx.followup.send(content="Files too large to be sent in batch, sending one by one:")
+            await ctx.followup.send(
+                content="Files too large to be sent in batch, sending one by one:"
+            )
             # Reset file buffers for each image
             [_.reset() for _ in discord_images]
-            for j in range(n-1):
+            for j in range(n - 1):
                 await ctx.send(file=discord_images[j])
-            await ctx.send(embed=msg_embed, file=discord_images[n-1])
-            
+            await ctx.send(embed=msg_embed, file=discord_images[n - 1])
 
-    @commands.slash_command(description="[DEBUG] Send multiple square images to discord")
-    @option("n", int, description = "Number of images to send", required = False)
-    @option("width", int, description = "Width (and height) of images to send", required = False)
-    @option("batch", int, description = "If true send images in one message, otherwise send separately", required = False)
-    async def sendimages(self, ctx: discord.ApplicationContext, n: int = 1, width:  int = 512, batch: bool = True):
+    @commands.slash_command(
+        description="[DEBUG] Send multiple square images to discord"
+    )
+    @option("n", int, description="Number of images to send", required=False)
+    @option(
+        "width", int, description="Width (and height) of images to send", required=False
+    )
+    @option(
+        "batch",
+        int,
+        description="If true send images in one message, otherwise send separately",
+        required=False,
+    )
+    async def sendimages(
+        self,
+        ctx: discord.ApplicationContext,
+        n: int = 1,
+        width: int = 512,
+        batch: bool = True,
+    ):
         await ctx.defer()
         embed = discord.Embed(colour=discord.Colour.fuchsia())
         discord_images = []
@@ -215,13 +259,13 @@ class StableDiffusionCog(commands.Cog):
             buffer.seek(0)
             discord_img = discord.File(buffer, filename=f"{j}.png")
             discord_images.append(discord_img)
-        
+
         if batch:
             await ctx.followup.send(files=discord_images)
         else:
             await ctx.followup.send(content="Images:")
             for dimg in discord_images:
-                await ctx.send(file = dimg)
+                await ctx.send(file=dimg)
 
     @commands.slash_command(description="[DEBUG] Send test message with embedding")
     async def embed(self, ctx: discord.ApplicationContext):
@@ -251,7 +295,7 @@ class StableDiffusionCog(commands.Cog):
 
         await ctx.followup.send(f"ECHO: {txt}")
 
-    def init_t2i(self):
+    def _init_t2i(self):
         # Use the argument parser defaults
         parser = create_argv_parser()
         self.opt = parser.parse_args()
@@ -296,6 +340,13 @@ class StableDiffusionCog(commands.Cog):
         self.logger.info("Initialised txt2img")
         print("Initialised txt2img")
         return t2i
+    
+    async def sendError(self, err_msg, ctx):
+        self.logger.warning(err_msg)
+        error_embed = discord.Embed(colour=discord.Colour.red())
+        error_embed.set_footer(text=err_msg)
+        await ctx.followup.send(embed=error_embed)
+        return
 
 
 def setup(bot):
