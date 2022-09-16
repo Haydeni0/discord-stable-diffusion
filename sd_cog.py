@@ -139,7 +139,7 @@ class StableDiffusionCog(commands.Cog):
             buffer = BytesIO()
             img.save(buffer, format="PNG")
 
-            # Check if the file is larger than 8 million bytes (discord upload limit is 8MB != 8 million bytes?)
+            # Check if the file is larger than 8 million bytes (discord upload limit is 8MB I think != 8 million bytes)
             size_limit = 8_000_000
             if buffer.__sizeof__() > size_limit:
                 file_name = file_name.replace(".png", ".jpeg")
@@ -176,7 +176,43 @@ class StableDiffusionCog(commands.Cog):
         msg_embed.add_field(
             name=prompt, value=f"seed{s}: {seeds_str}, duration: {duration:1f}"
         )
-        await ctx.followup.send(embed=msg_embed, files=discord_images)
+        
+        # Try to send as a batch of files
+        # If that doesn't work because the files altogether go over the discord upload limit, then send one by one
+        try:
+            await ctx.followup.send(embed=msg_embed, files=discord_images)
+        except:
+            await ctx.followup.send(content="Files too large to be sent in batch, sending one by one:")
+            # Reset file buffers for each image
+            [_.reset() for _ in discord_images]
+            for j in range(n-1):
+                await ctx.send(file=discord_images[j])
+            await ctx.send(embed=msg_embed, file=discord_images[n-1])
+            
+
+    @commands.slash_command(description="[DEBUG] Send multiple square images to discord")
+    @option("n", int, description = "Number of images to send", required = False)
+    @option("width", int, description = "Width (and height) of images to send", required = False)
+    @option("batch", int, description = "If true send images in one message, otherwise send separately", required = False)
+    async def sendimages(self, ctx: discord.ApplicationContext, n: int = 1, width:  int = 512, batch: bool = True):
+        await ctx.defer()
+        embed = discord.Embed(colour=discord.Colour.fuchsia())
+        discord_images = []
+        # Only generate one image, and just send the same one
+        img = Image.effect_noise((width, width), 0.2)
+        for j in range(n):
+            buffer = BytesIO()
+            img.save(buffer, format="PNG")
+            buffer.seek(0)
+            discord_img = discord.File(buffer, filename=f"{j}.png")
+            discord_images.append(discord_img)
+        
+        if batch:
+            await ctx.followup.send(files=discord_images)
+        else:
+            await ctx.followup.send(content="Images:")
+            for dimg in discord_images:
+                await ctx.send(file = dimg)
 
     @commands.slash_command(description="[DEBUG] Send test message with embedding")
     async def embed(self, ctx: discord.ApplicationContext):
