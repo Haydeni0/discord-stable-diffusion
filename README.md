@@ -19,7 +19,7 @@ A discord bot that runs the Stable Diffusion text-to-image model on a local GPU 
 
 2. Navigate to the repository in terminal
 3. Follow the instructions [here](https://github.com/lstein/stable-diffusion) to set it up
-   1. Or if using linux, run the command
+   1. Or if using linux/WSL2, run the command
 
             . install.sh
 
@@ -87,7 +87,9 @@ A discord bot that runs the Stable Diffusion text-to-image model on a local GPU 
 - Make sure two parallel txt2img things dont occur, give a warning if a txt2img is called again without finishing the previous one
   - Or maybe allow it by putting them in a queue (with a max length), and run them serially so the gpu isn't working on 2 at once
 
-
+### Fixes
+- Fix img2img mode producing garbage result because of low resolution
+  - Fix the rescaling to use the volume rather than max of the width and height
 
 
 
