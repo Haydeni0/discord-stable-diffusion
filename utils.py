@@ -9,6 +9,7 @@ import functools
 import asyncio
 import math
 
+
 def getImageFromUrl(url: str) -> Image.Image:
     img_bytes = requests.get(url).content
 
@@ -34,14 +35,15 @@ def discordFilename(attachment: discord.message.Attachment):
     return filename
 
 
-def saveImageFromUrl(url: str, download_path: str, max_size: int) -> str:
+def saveImageFromUrl(url: str, download_path: str, resize_num_pixels: int) -> str:
     img = getImageFromUrl(url)
 
-    if max_size is not None and max(img.size) > max_size:
-        scale_factor = max(img.size) / max_size
-        new_size = tuple(math.ceil(sz / scale_factor) for sz in img.size)
+    img_pixels = math.prod(img.size)
+    # Resize the image
+    if resize_num_pixels is not None:
+        scale_factor = img_pixels / resize_num_pixels
+        new_size = tuple(round(sz / math.sqrt(scale_factor)) for sz in img.size)
         img = img.resize(new_size)
-
 
     os.makedirs(download_path, exist_ok=True)
 

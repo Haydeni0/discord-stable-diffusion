@@ -99,17 +99,22 @@ class StableDiffusionCog(commands.Cog):
         error_embed = discord.Embed(colour=discord.Colour.red())
         msg_embed = discord.Embed(colour=discord.Colour.fuchsia())
         if not (1 <= n <= 10):
-            await self.sendError(f"Error: n = {n} (n must be between 1 and 10, inclusive)", ctx)
+            await self.sendError(
+                f"Error: n = {n} (n must be between 1 and 10, inclusive)", ctx
+            )
             return
-        max_pixels = 1638400
+        max_pixels = 1280**2
         if width * height > max_pixels:
-            await self.sendError(f"Error: image too large (width*height > {max_pixels})", ctx)
+            await self.sendError(
+                f"Error: image too large (width*height > {max_pixels})", ctx
+            )
             return
         if not (0 < strength < 1):
-            await self.sendError(f"Error: strength = {strength} (strength must be between 0 and 1)", ctx)
+            await self.sendError(
+                f"Error: strength = {strength} (strength must be between 0 and 1)", ctx
+            )
             return
 
-        
         output_path = self.opt.outdir
         download_path = "./downloads"
         os.makedirs(output_path, exist_ok=True)
@@ -118,9 +123,13 @@ class StableDiffusionCog(commands.Cog):
         # Check if initial image is supplied
         if url is not None:
             try:
-                init_img_path = saveImageFromUrl(url, download_path, max_size=max(width, height))
+                init_img_path = saveImageFromUrl(
+                    url, download_path, resize_num_pixels=width * height
+                )
             except:
-                await self.sendError(f"Error: image could not be downloaded from url", ctx)
+                await self.sendError(
+                    f"Error: image could not be downloaded from url", ctx
+                )
                 return
 
         # Author of the message
@@ -135,7 +144,8 @@ class StableDiffusionCog(commands.Cog):
             f"-C{cfg_scale}",
             None if seed is None else f"-S{seed}",
             f"-s{steps}",
-            None if url is None else f"-I{init_img_path}"
+            None if url is None else f"-I{init_img_path}",
+            None if url is None else f"-f{strength}",
         ]
         query = [_ for _ in query if _ is not None]
 
@@ -340,7 +350,7 @@ class StableDiffusionCog(commands.Cog):
         self.logger.info("Initialised txt2img")
         print("Initialised txt2img")
         return t2i
-    
+
     async def sendError(self, err_msg, ctx):
         self.logger.warning(err_msg)
         error_embed = discord.Embed(colour=discord.Colour.red())
